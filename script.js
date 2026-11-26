@@ -14,10 +14,10 @@ const showHintsCheck = document.getElementById('showHintsCheck');
 const trashTalkCheck = document.getElementById('trashTalkCheck');
 
 const SYMBOLS = { wP:'♟', wR:'♜', wN:'♞', wB:'♝', wQ:'♛', wK:'♚', bP:'♟', bR:'♜', bN:'♞', bB:'♝', bQ:'♛', bK:'♚' };
-const VALUES = { P:10, N:30, B:30, R:50, Q:90, K:900 };
+const VALUES = { P: 100, N: 320, B: 330, R: 500, Q: 900, K: 20000 };
 
 let settings = { difficulty: 'medium', cheatLevel: 1, theme: 'slate', showHints: true, trashTalk: true };
-let board = [], turn = 'w', selected = null, validMoves = [], gameOver = false;
+let board = [], turn = 'w', selected = null, validMoves = [], gameOver = false, lastMove = null;
 let castling = { wK: true, wRa: true, wRh: true, bK: true, bRa: true, bRh: true };
 
 settingsBtn.onclick = () => settingsModal.classList.remove('hidden');
@@ -34,10 +34,11 @@ applySettingsBtn.onclick = () => {
 };
 
 function showCheat(msg) {
-  if (!settings.trashTalk) return;
+  if (!settings.trashTalk || !msg) return;
   cheatBannerEl.textContent = '⚠️ ЧІТ: ' + msg;
   cheatBannerEl.classList.remove('hidden');
-  setTimeout(() => cheatBannerEl.classList.add('hidden'), 3500);
+  clearTimeout(window.cheatTimer);
+  window.cheatTimer = setTimeout(() => cheatBannerEl.classList.add('hidden'), 3500);
 }
 
 function initBoard() {
@@ -51,7 +52,7 @@ function initBoard() {
     ['wP','wP','wP','wP','wP','wP','wP','wP'],
     ['wR','wN','wB','wQ','wK','wB','wN','wR']
   ];
-  turn = 'w'; selected = null; validMoves = []; gameOver = false;
+  turn = 'w'; selected = null; validMoves = []; gameOver = false; lastMove = null;
   castling = { wK: true, wRa: true, wRh: true, bK: true, bRa: true, bRh: true };
   cheatBannerEl.classList.add('hidden');
   statusEl.textContent = 'Твій хід (Білі)';
@@ -68,6 +69,10 @@ const KNIGHT_JUMPS = [
   {dr:-2,dc:-1},{dr:-2,dc:1},{dr:-1,dc:-2},{dr:-1,dc:2},
   {dr:1,dc:-2},{dr:1,dc:2},{dr:2,dc:-1},{dr:2,dc:1}
 ];
+const DIRS8 = [
+  {dr:-1,dc:0},{dr:1,dc:0},{dr:0,dc:-1},{dr:0,dc:1},
+  {dr:-1,dc:-1},{dr:-1,dc:1},{dr:1,dc:-1},{dr:1,dc:1}
+];
 
 function getPseudo(r, c, st = board, allowCastle = true) {
   const p = getAt(st, r, c);
@@ -76,25 +81,19 @@ function getPseudo(r, c, st = board, allowCastle = true) {
   const isCheater = (col === 'b' && settings.cheatLevel >= 1);
 
   const addUnique = (nr, nc, extra = {}) => {
-    if (!moves.some(m => m.r === nr && m.c === nc)) {
-      moves.push({ r: nr, c: nc, ...extra });
-    }
+    if (!moves.some(m => m.r === nr && m.c === nc)) moves.push({ r: nr, c: nc, ...extra });
   };
 
-  const pushOk = (nr, nc) => {
+  const pushOk = (nr, nc, extra = {}) => {
     if (!inBounds(nr, nc)) return false;
     const t = getAt(st, nr, nc);
-    if (!t) { addUnique(nr, nc); return true; }
-    if (t.charAt(0) !== col) addUnique(nr, nc);
+    if (!t) { addUnique(nr, nc, extra); return true; }
+    if (t.charAt(0) !== col) addUnique(nr, nc, extra);
     return false;
   };
 
-  const addKingSteps = (radius = 1) => {
-    for (let dr = -radius; dr <= radius; dr++) {
-      for (let dc = -radius; dc <= radius; dc++) {
-        if (dr !== 0 || dc !== 0) pushOk(r + dr, c + dc);
-      }
-    }
+  const addKingSteps = (label) => {
+    for (const d of DIRS8) pushOk(r + d.dr, c + d.dc, { cheat: label });
   };
 
   if (type === 'P') {
@@ -117,16 +116,12 @@ function getPseudo(r, c, st = board, allowCastle = true) {
     }
   } else if (type === 'N') {
     KNIGHT_JUMPS.forEach(j => pushOk(r + j.dr, c + j.dc));
-    if (isCheater) addKingSteps(1);
+    if (isCheater) addKingSteps('Кінь походив як король!');
   } else if (type === 'K') {
     const maxSteps = (isCheater && allowCastle && inCheck(col, st)) ? 2 : 1;
-    const dirs8 = [
-      {dr:-1,dc:0}, {dr:1,dc:0}, {dr:0,dc:-1}, {dr:0,dc:1},
-      {dr:-1,dc:-1}, {dr:-1,dc:1}, {dr:1,dc:-1}, {dr:1,dc:1}
-    ];
-    for (const d of dirs8) {
-      for (let step = 1; step <= maxSteps; step++) {
-        if (!pushOk(r + d.dr * step, c + d.dc * step)) break;
+    for (const d of DIRS8) {
+      for (let s = 1; s <= maxSteps; s++) {
+        if (!pushOk(r + d.dr * s, c + d.dc * s, { cheat: s === 2 ? 'Король відійшов на 2 клітинки!' : null })) break;
       }
     }
     if (allowCastle) {
@@ -136,14 +131,14 @@ function getPseudo(r, c, st = board, allowCastle = true) {
         if (castling[col+'K'] && castling[col+'Ra'] && !getAt(st,row,3) && !getAt(st,row,2) && !getAt(st,row,1) && !isAttacked(row,3,col,st) && !isAttacked(row,2,col,st)) addUnique(row, 2, { castle: 'long' });
       }
     }
-
   } else {
     const dirs = [];
     if (type === 'R' || type === 'Q') dirs.push({dr:-1,dc:0},{dr:1,dc:0},{dr:0,dc:-1},{dr:0,dc:1});
     if (type === 'B' || type === 'Q') dirs.push({dr:-1,dc:-1},{dr:-1,dc:1},{dr:1,dc:-1},{dr:1,dc:1});
     for (const d of dirs) { let nr = r + d.dr, nc = c + d.dc; while (pushOk(nr, nc)) { nr += d.dr; nc += d.dc; } }
-    if (isCheater && (type === 'R' || type === 'B')) addKingSteps(1);
-    if (isCheater && type === 'Q') KNIGHT_JUMPS.forEach(j => pushOk(r + j.dr, c + j.dc));
+    if (isCheater && type === 'R') addKingSteps('Тура походила як король!');
+    if (isCheater && type === 'B') addKingSteps('Слон походив як король!');
+    if (isCheater && type === 'Q') KNIGHT_JUMPS.forEach(j => pushOk(r + j.dr, c + j.dc, { cheat: 'Валькірія стрибнула як кінь!' }));
   }
   return moves;
 }
@@ -162,15 +157,24 @@ function inCheck(col, st = board) {
   return false;
 }
 
+function applySimMove(st, m) {
+  const sim = cloneSt(st);
+  const p = getAt(sim, m.fromR, m.fromC);
+  setAt(sim, m.toR, m.toC, p);
+  setAt(sim, m.fromR, m.fromC, null);
+  if (m.castle === 'short') { setAt(sim, m.fromR, 5, getAt(sim, m.fromR, 7)); setAt(sim, m.fromR, 7, null); }
+  if (m.castle === 'long') { setAt(sim, m.fromR, 3, getAt(sim, m.fromR, 0)); setAt(sim, m.fromR, 0, null); }
+  if (p === 'wP' && m.toR === 0) setAt(sim, m.toR, m.toC, 'wQ');
+  if (p === 'bP' && m.toR === 7) setAt(sim, m.toR, m.toC, 'bQ');
+  return sim;
+}
+
 function getLegal(r, c, st = board) {
   const p = getAt(st, r, c);
   if (!p) return [];
   const col = p.charAt(0);
   return getPseudo(r, c, st, true).filter(m => {
-    const sim = cloneSt(st);
-    setAt(sim, m.r, m.c, getAt(sim, r, c)); setAt(sim, r, c, null);
-    if (m.castle === 'short') { setAt(sim, r, 5, getAt(sim, r, 7)); setAt(sim, r, 7, null); }
-    if (m.castle === 'long') { setAt(sim, r, 3, getAt(sim, r, 0)); setAt(sim, r, 0, null); }
+    const sim = applySimMove(st, { fromR: r, fromC: c, toR: m.r, toC: m.c, castle: m.castle });
     return !inCheck(col, sim);
   });
 }
@@ -185,71 +189,108 @@ function getAllLegal(col, st = board) {
   return all;
 }
 
-function makeMove(fromR, fromC, toR, toC, castle = null) {
-  const p = getAt(board, fromR, fromC), col = p.charAt(0);
-  const wasInCheck = (col === 'b' && inCheck('b'));
-  setAt(board, toR, toC, p); setAt(board, fromR, fromC, null);
-
-  if (p === 'bK' && wasInCheck && (Math.abs(toR - fromR) > 1 || Math.abs(toC - fromC) > 1)) {
-    showCheat('Король читера відскочив на 2 клітинки з-під шаху!');
+function evaluateBoard(st) {
+  let score = 0;
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+    const p = getAt(st, r, c);
+    if (!p) continue;
+    const val = VALUES[p.charAt(1)];
+    const centerBonus = ((r === 3 || r === 4) && (c === 3 || c === 4)) ? 25 : 0;
+    const advanceBonus = p.charAt(0) === 'b' ? r * 4 : (7 - r) * 4;
+    score += p.charAt(0) === 'b' ? (val + centerBonus + advanceBonus) : -(val + centerBonus + advanceBonus);
   }
+  return score;
+}
 
-  if (castle === 'short') { setAt(board, fromR, 5, getAt(board, fromR, 7)); setAt(board, fromR, 7, null); }
-  if (castle === 'long') { setAt(board, fromR, 3, getAt(board, fromR, 0)); setAt(board, fromR, 0, null); }
-  if (p === 'wK') castling.wK = false;
-  if (p === 'bK') castling.bK = false;
-  if (fromR === 7 && fromC === 0) castling.wRa = false;
-  if (fromR === 7 && fromC === 7) castling.wRh = false;
-  if (fromR === 0 && fromC === 0) castling.bRa = false;
-  if (fromR === 0 && fromC === 7) castling.bRh = false;
-  if (p === 'wP' && toR === 0) setAt(board, toR, toC, 'wQ');
-  if (p === 'bP' && toR === 7) setAt(board, toR, toC, 'bQ');
-
-  const next = col === 'w' ? 'b' : 'w';
-  const nextMoves = getAllLegal(next), check = inCheck(next);
-  if (!nextMoves.length) {
-    gameOver = true;
-    statusEl.textContent = check ? (col === 'w' ? 'Шах і мат! Ти переміг!' : 'Шах і мат! Читер переміг!') : 'Пат! Нічия!';
-    return;
+function minimax(st, depth, alpha, beta, isMax) {
+  const col = isMax ? 'b' : 'w';
+  const moves = getAllLegal(col, st);
+  if (!moves.length) {
+    if (inCheck(col, st)) return isMax ? -99999 - depth * 100 : 99999 + depth * 100;
+    return 0;
   }
-  statusEl.textContent = next === 'w' ? (check ? 'Твій хід (Білі) — ШАХ!' : 'Твій хід (Білі)') : (check ? 'Хід суперника — ШАХ!' : 'Хід суперника...');
+  if (depth === 0) return evaluateBoard(st);
+
+  if (isMax) {
+    let maxEval = -Infinity;
+    for (const m of moves) {
+      const ev = minimax(applySimMove(st, m), depth - 1, alpha, beta, false);
+      if (ev > maxEval) maxEval = ev;
+      if (ev > alpha) alpha = ev;
+      if (beta <= alpha) break;
+    }
+    return maxEval;
+  } else {
+    let minEval = Infinity;
+    for (const m of moves) {
+      const ev = minimax(applySimMove(st, m), depth - 1, alpha, beta, true);
+      if (ev < minEval) minEval = ev;
+      if (ev < beta) beta = ev;
+      if (beta <= alpha) break;
+    }
+    return minEval;
+  }
 }
 
 function pickBotMove(moves) {
-  if (settings.difficulty === 'easy') return moves.at(Math.floor(Math.random() * moves.length));
-  let best = -99999, list = [];
-  for (const m of moves) {
-    let sc = Math.random() * 3 + (m.target ? VALUES[m.target.charAt(1)] * 10 : 0);
-    if ((m.toR === 3 || m.toR === 4) && (m.toC === 3 || m.toC === 4)) sc += 4;
-    if (settings.difficulty === 'hard') {
-      const sim = cloneSt(board), mv = getAt(sim, m.fromR, m.fromC);
-      setAt(sim, m.toR, m.toC, mv); setAt(sim, m.fromR, m.fromC, null);
-      if (isAttacked(m.toR, m.toC, 'b', sim)) sc -= VALUES[mv.charAt(1)] * 8;
-      if (inCheck('w', sim)) sc += 15;
-    }
-    if (sc > best) { best = sc; list = [m]; }
-    else if (Math.abs(sc - best) < 0.5) list.push(m);
+  if (settings.difficulty === 'easy') {
+    const cheatMoves = moves.filter(m => m.cheat);
+    if (cheatMoves.length && Math.random() < 0.5) return cheatMoves.at(Math.floor(Math.random() * cheatMoves.length));
+    return moves.at(Math.floor(Math.random() * moves.length));
   }
-  return list.at(Math.floor(Math.random() * list.length));
-}
 
+  const depth = settings.difficulty === 'hard' ? 2 : 1;
+let bestScore = -Infinity, bestList = [];
+for (const m of moves) {
+const sim = applySimMove(board, m);
+let score = minimax(sim, depth - 1, -Infinity, Infinity, false);
+if (m.cheat) score += 35; // Бот охоче використовує суперходи читера!
+score += Math.random() * 8;
+if (score > bestScore) { bestScore = score; bestList = [m]; }
+else if (Math.abs(score - bestScore) < 5) bestList.push(m);
+}
+return bestList.at(Math.floor(Math.random() * bestList.length));
+}
+function makeMove(fromR, fromC, toR, toC, castle = null, cheatMsg = null) {
+const p = getAt(board, fromR, fromC), col = p.charAt(0);
+setAt(board, toR, toC, p); setAt(board, fromR, fromC, null);
+lastMove = { fromR, fromC, toR, toC };
+if (cheatMsg) showCheat(cheatMsg);
+if (castle === 'short') { setAt(board, fromR, 5, getAt(board, fromR, 7)); setAt(board, fromR, 7, null); }
+if (castle === 'long') { setAt(board, fromR, 3, getAt(board, fromR, 0)); setAt(board, fromR, 0, null); }
+if (p === 'wK') castling.wK = false;
+if (p === 'bK') castling.bK = false;
+if (fromR === 7 && fromC === 0) castling.wRa = false;
+if (fromR === 7 && fromC === 7) castling.wRh = false;
+if (fromR === 0 && fromC === 0) castling.bRa = false;
+if (fromR === 0 && fromC === 7) castling.bRh = false;
+if (p === 'wP' && toR === 0) setAt(board, toR, toC, 'wQ');
+if (p === 'bP' && toR === 7) setAt(board, toR, toC, 'bQ');
+const next = col === 'w' ? 'b' : 'w';
+const nextMoves = getAllLegal(next), check = inCheck(next);
+if (!nextMoves.length) {
+gameOver = true;
+statusEl.textContent = check ? (col === 'w' ? 'Шах і мат! Ти переміг!' : 'Шах і мат! Читер переміг!') : 'Пат! Нічия!';
+return;
+}
+statusEl.textContent = next === 'w' ? (check ? 'Твій хід (Білі) — ШАХ!' : 'Твій хід (Білі)') : (check ? 'Хід суперника — ШАХ!' : 'Хід суперника...');
+}
 function botTurn() {
-  if (gameOver) return;
-  const moves = getAllLegal('b');
-  if (!moves.length) return;
-  const chosen = pickBotMove(moves);
-  makeMove(chosen.fromR, chosen.fromC, chosen.toR, chosen.toC, chosen.castle);
-  if (!gameOver) turn = 'w';
-  render();
+if (gameOver) return;
+const moves = getAllLegal('b');
+if (!moves.length) return;
+const chosen = pickBotMove(moves);
+makeMove(chosen.fromR, chosen.fromC, chosen.toR, chosen.toC, chosen.castle, chosen.cheat);
+if (!gameOver) turn = 'w';
+render();
 }
-
 function onCellClick(r, c) {
 if (gameOver || turn !== 'w') return;
 const mv = validMoves.find(m => m.r === r && m.c === c);
 if (selected && mv) {
 makeMove(selected.r, selected.c, r, c, mv.castle);
 selected = null; validMoves = []; render();
-if (!gameOver) { turn = 'b'; setTimeout(botTurn, 400); }
+if (!gameOver) { turn = 'b'; setTimeout(botTurn, 350); }
 return;
 }
 const p = getAt(board, r, c);
@@ -263,6 +304,7 @@ for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
 const cell = document.createElement('div');
 cell.className = 'cell ' + ((r + c) % 2 === 0 ? 'light' : 'dark');
 if (selected && selected.r === r && selected.c === c) cell.classList.add('selected');
+if (lastMove && ((lastMove.fromR === r && lastMove.fromC === c) || (lastMove.toR === r && lastMove.toC === c))) cell.classList.add('last-move');
 if (settings.showHints && validMoves.some(m => m.r === r && m.c === c)) cell.classList.add(getAt(board, r, c) ? 'valid-capture' : 'valid-move');
 const p = getAt(board, r, c);
 if (p) { const span = document.createElement('span'); span.textContent = SYMBOLS[p]; span.className = p.charAt(0) === 'w' ? 'piece-white' : 'piece-black'; cell.appendChild(span); }
