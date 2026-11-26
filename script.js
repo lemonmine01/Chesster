@@ -315,3 +315,16 @@ function makeMove(fromR, fromC, toR, toC, castle = null) {
   setAt(board, fromR, fromC, null);
 
   if (castle === 'short') {
+        span.textContent = SYMBOLS[piece];
+        span.className = piece.charAt(0) === 'w' ? 'piece-white' : 'piece-black';
+        cell.appendChild(span);
+      }
+
+      cell.addEventListener('click', () => onCellClick(r, c));
+      boardEl.appendChild(cell);
+    }
+  }
+}
+
+restartBtn.addEventListener('click', initBoard);
+initBoard();
