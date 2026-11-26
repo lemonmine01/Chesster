@@ -74,9 +74,8 @@ h1 {
   position: relative;
 }
 
-/* Теми дошки */
-.board.theme-slate .cell.light { background: #e2e8f0; }
-.board.theme-slate .cell.dark  { background: #64748b; }
+.board.theme-slate .cell.light, .cell.light { background: #e2e8f0; }
+.board.theme-slate .cell.dark,  .cell.dark  { background: #64748b; }
 
 .board.theme-green .cell.light { background: #eeeed2; }
 .board.theme-green .cell.dark  { background: #769656; }
@@ -132,34 +131,37 @@ h1 {
   margin-top: 8px;
 }
 
-/* Кнопка налаштувань справа знизу */
+/* Велика кнопка шестерні справа знизу */
 .settings-btn {
   position: fixed;
-  right: 22px;
-  bottom: 22px;
-  padding: 12px 18px;
-  font-size: 15px;
-  font-weight: bold;
+  right: 26px;
+  bottom: 26px;
+  width: 64px;
+  height: 64px;
+  font-size: 32px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   background: #27272a;
   color: #f4f4f5;
-  border: 1px solid #52525b;
-  border-radius: 12px;
+  border: 2px solid #52525b;
+  border-radius: 50%;
   cursor: pointer;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
-  transition: 0.15s;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
   z-index: 10;
 }
 
 .settings-btn:hover {
   background: #3f3f46;
   border-color: #38bdf8;
+  transform: rotate(45deg) scale(1.06);
 }
 
-/* Модальне вікно */
 .modal {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.75);
   display: flex;
   justify-content: center;
   align-items: center;
