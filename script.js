@@ -7,11 +7,16 @@ const SYMBOLS = {
   bP: '♟', bR: '♜', bN: '♞', bB: '♝', bQ: '♛', bK: '♚'
 };
 
+const PIECE_VALUES = {
+  P: 10, N: 30, B: 30, R: 50, Q: 90, K: 900
+};
+
 let board = [];
 let turn = 'w';
 let selected = null;
 let validMoves = [];
 let gameOver = false;
+let castlingRights = { wK: true, wR_a: true, wR_h: true, bK: true, bR_a: true, bR_h: true };
 
 function initBoard() {
   board = [
@@ -28,6 +33,7 @@ function initBoard() {
   selected = null;
   validMoves = [];
   gameOver = false;
+  castlingRights = { wK: true, wR_a: true, wR_h: true, bK: true, bR_a: true, bR_h: true };
   statusEl.textContent = 'Твій хід (Білі)';
   render();
 }
@@ -36,7 +42,11 @@ function isInside(r, c) {
   return r >= 0 && r < 8 && c >= 0 && c < 8;
 }
 
-function getPseudoMoves(r, c, state = board) {
+function cloneBoard(state) {
+  return state.map(row => [...row]);
+}
+
+function getPseudoMoves(r, c, state = board, includeCastling = true) {
   const piece = state[r][c];
   if (!piece) return [];
   const color = piece.charAt(0);
@@ -74,84 +84,196 @@ function getPseudoMoves(r, c, state = board) {
     }
   } else if (type === 'N') {
     const jumps = [
-      [-2, -1], [-2, 1], [-1, -2], [-1, 2],
-      [1, -2], ,  [2, -1],  [2, 1]
+      { dr: -2, dc: -1 }, { dr: -2, dc: 1 },
+      { dr: -1, dc: -2 }, { dr: -1, dc: 2 },
+      { dr: 1, dc: -2 },  { dr: 1, dc: 2 },
+      { dr: 2, dc: -1 },  { dr: 2, dc: 1 }
     ];
-    for (const [dr, dc] of jumps) addIfValid(r + dr, c + dc);
+    for (const j of jumps) {
+      addIfValid(r + j.dr, c + j.dc);
+    }
   } else if (type === 'K') {
     for (let dr = -1; dr <= 1; dr++) {
       for (let dc = -1; dc <= 1; dc++) {
         if (dr !== 0 || dc !== 0) addIfValid(r + dr, c + dc);
       }
     }
+    if (includeCastling) {
+      const row = color === 'w' ? 7 : 0;
+      if (r === row && c === 4 && !isKingInCheck(color, state)) {
+        if (castlingRights[color + 'K'] && castlingRights[color + 'R_h']) {
+          if (!state[row][5] && !state[row][6] &&
+              !isSquareAttacked(row, 5, color, state) &&
+              !isSquareAttacked(row, 6, color, state)) {
+            moves.push({ r: row, c: 6, castle: 'short' });
+          }
+        }
+        if (castlingRights[color + 'K'] && castlingRights[color + 'R_a']) {
+          if (!state[row][1] && !state[row][2] && !state[row][3] &&
+              !isSquareAttacked(row, 3, color, state) &&
+              !isSquareAttacked(row, 2, color, state)) {
+            moves.push({ r: row, c: 2, castle: 'long' });
+          }
+        }
+      }
+    }
   } else {
     const dirs = [];
     if (type === 'R' || type === 'Q') {
-      dirs.push([-1, 0], [1, 0], [0, -1], [0, 1]);
+      dirs.push({ dr: -1, dc: 0 }, { dr: 1, dc: 0 }, { dr: 0, dc: -1 }, { dr: 0, dc: 1 });
     }
     if (type === 'B' || type === 'Q') {
-      dirs.push([-1, -1], [-1, 1], [1, -1], [1, 1]);
+      dirs.push({ dr: -1, dc: -1 }, { dr: -1, dc: 1 }, { dr: 1, dc: -1 }, { dr: 1, dc: 1 });
     }
-    for (const [dr, dc] of dirs) {
-      let nr = r + dr;
-      let nc = c + dc;
+    for (const d of dirs) {
+      let nr = r + d.dr;
+      let nc = c + d.dc;
       while (addIfValid(nr, nc)) {
-        nr += dr;
-        nc += dc;
+        nr += d.dr;
+        nc += d.dc;
       }
     }
   }
   return moves;
 }
 
-function makeMove(fromR, fromC, toR, toC) {
+function isSquareAttacked(targetR, targetC, defenderColor, state = board) {
+  const attackerColor = defenderColor === 'w' ? 'b' : 'w';
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const p = state[r][c];
+      if (p && p.charAt(0) === attackerColor) {
+        const moves = getPseudoMoves(r, c, state, false);
+        if (moves.some(m => m.r === targetR && m.c === targetC)) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+function isKingInCheck(color, state = board) {
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      if (state[r][c] === color + 'K') {
+        return isSquareAttacked(r, c, color, state);
+      }
+    }
+  }
+  return false;
+}
+
+function getLegalMoves(r, c, state = board) {
+  const piece = state[r][c];
+  if (!piece) return [];
+  const color = piece.charAt(0);
+  const pseudo = getPseudoMoves(r, c, state, true);
+
+  return pseudo.filter(move => {
+    const sim = cloneBoard(state);
+    sim[move.r][move.c] = sim[r][c];
+    sim[r][c] = null;
+    if (move.castle === 'short') {
+      sim[r][5] = sim[r][7];
+      sim[r][7] = null;
+    } else if (move.castle === 'long') {
+      sim[r][3] = sim[r][0];
+      sim[r][0] = null;
+    }
+    return !isKingInCheck(color, sim);
+  });
+}
+
+function getAllLegalMoves(color, state = board) {
+  const all = [];
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      if (state[r][c] && state[r][c].charAt(0) === color) {
+        const moves = getLegalMoves(r, c, state);
+        for (const m of moves) {
+          all.push({ fromR: r, fromC: c, toR: m.r, toC: m.c, castle: m.castle, target: state[m.r][m.c] });
+        }
+      }
+    }
+  }
+  return all;
+}
+
+function makeMove(fromR, fromC, toR, toC, castle = null) {
   const movingPiece = board[fromR][fromC];
-  const captured = board[toR][toC];
+  const color = movingPiece.charAt(0);
 
   board[toR][toC] = movingPiece;
   board[fromR][fromC] = null;
 
+  if (castle === 'short') {
+    board[fromR][5] = board[fromR][7];
+    board[fromR][7] = null;
+  } else if (castle === 'long') {
+    board[fromR][3] = board[fromR][0];
+    board[fromR][0] = null;
+  }
+
+  if (movingPiece === 'wK') castlingRights.wK = false;
+  if (movingPiece === 'bK') castlingRights.bK = false;
+  if (fromR === 7 && fromC === 0) castlingRights.wR_a = false;
+  if (fromR === 7 && fromC === 7) castlingRights.wR_h = false;
+  if (fromR === 0 && fromC === 0) castlingRights.bR_a = false;
+  if (fromR === 0 && fromC === 7) castlingRights.bR_h = false;
+
   if (movingPiece === 'wP' && toR === 0) board[toR][toC] = 'wQ';
   if (movingPiece === 'bP' && toR === 7) board[toR][toC] = 'bQ';
 
-  if (captured === 'bK') {
+  const nextColor = color === 'w' ? 'b' : 'w';
+  const nextMoves = getAllLegalMoves(nextColor);
+  const inCheck = isKingInCheck(nextColor);
+
+  if (nextMoves.length === 0) {
     gameOver = true;
-    statusEl.textContent = 'Перемога! Ти здолав читера!';
-  } else if (captured === 'wK') {
-    gameOver = true;
-    statusEl.textContent = 'Поразка! Читер переміг!';
+    if (inCheck) {
+      statusEl.textContent = color === 'w' ? 'Шах і мат! Ти переміг!' : 'Шах і мат! Чорні перемогли!';
+    } else {
+      statusEl.textContent = 'Пат! Нічия!';
+    }
+    return;
+  }
+
+  if (nextColor === 'w') {
+    statusEl.textContent = inCheck ? 'Твій хід (Білі) — ШАХ!' : 'Твій хід (Білі)';
+  } else {
+    statusEl.textContent = inCheck ? 'Хід суперника — ШАХ!' : 'Хід суперника (Чорні)...';
   }
 }
 
 function botTurn() {
   if (gameOver) return;
-  const allMoves = [];
-  for (let r = 0; r < 8; r++) {
-    for (let c = 0; c < 8; c++) {
-      if (board[r][c] && board[r][c].charAt(0) === 'b') {
-        const moves = getPseudoMoves(r, c);
-        for (const m of moves) {
-          allMoves.push({ fromR: r, fromC: c, toR: m.r, toC: m.c, target: board[m.r][m.c] });
-        }
-      }
+  const allMoves = getAllLegalMoves('b');
+  if (allMoves.length === 0) return;
+
+  let bestScore = -9999;
+  let bestMoves = [];
+
+  for (const m of allMoves) {
+    let score = Math.random() * 4;
+    if (m.target) {
+      score += PIECE_VALUES[m.target.charAt(1)] * 10;
+    }
+    if ((m.toR === 3 || m.toR === 4) && (m.toC === 3 || m.toC === 4)) {
+      score += 3;
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      bestMoves = [m];
+    } else if (Math.abs(score - bestScore) < 0.5) {
+      bestMoves.push(m);
     }
   }
 
-  if (allMoves.length === 0) {
-    gameOver = true;
-    statusEl.textContent = 'Нічия або пат!';
-    return;
-  }
-
-  const captures = allMoves.filter(m => m.target !== null);
-  const chosen = captures.length > 0
-    ? captures[Math.floor(Math.random() * captures.length)]
-    : allMoves[Math.floor(Math.random() * allMoves.length)];
-
-  makeMove(chosen.fromR, chosen.fromC, chosen.toR, chosen.toC);
+  const chosen = bestMoves[Math.floor(Math.random() * bestMoves.length)];
+  makeMove(chosen.fromR, chosen.fromC, chosen.toR, chosen.toC, chosen.castle);
   if (!gameOver) {
     turn = 'w';
-    statusEl.textContent = 'Твій хід (Білі)';
   }
   render();
 }
@@ -161,14 +283,13 @@ function onCellClick(r, c) {
 
   const move = validMoves.find(m => m.r === r && m.c === c);
   if (selected && move) {
-    makeMove(selected.r, selected.c, r, c);
+    makeMove(selected.r, selected.c, r, c, move.castle);
     selected = null;
     validMoves = [];
     render();
 
     if (!gameOver) {
       turn = 'b';
-      statusEl.textContent = 'Хід суперника (Чорні)...';
       setTimeout(botTurn, 400);
     }
     return;
@@ -177,7 +298,7 @@ function onCellClick(r, c) {
   const piece = board[r][c];
   if (piece && piece.charAt(0) === 'w') {
     selected = { r, c };
-    validMoves = getPseudoMoves(r, c);
+    validMoves = getLegalMoves(r, c);
   } else {
     selected = null;
     validMoves = [];
