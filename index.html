@@ -10,9 +10,64 @@
   <div class="game-container">
     <h1>Chesster</h1>
     <div id="status" class="status">Твій хід (Білі)</div>
+    <div id="cheatBanner" class="cheat-banner hidden"></div>
     <div id="board" class="board"></div>
     <button id="restartBtn" class="btn">Нова гра</button>
   </div>
+
+  <!-- Кнопка налаштувань справа знизу -->
+  <button id="settingsBtn" class="settings-btn" title="Налаштування">⚙️ Налаштування</button>
+
+  <!-- Спливаюче вікно налаштувань -->
+  <div id="settingsModal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>⚙️ Налаштування гри</h2>
+        <button id="closeSettingsBtn" class="close-btn">✕</button>
+      </div>
+
+      <div class="setting-group">
+        <label for="difficultySelect">Складність гри (Розум бота):</label>
+        <select id="difficultySelect">
+          <option value="easy">Новачок (Простий)</option>
+          <option value="medium" selected>Любитель (Тактичний)</option>
+          <option value="hard">Профі (Minimax — Глибокий розрахунок)</option>
+        </select>
+      </div>
+
+      <div class="setting-group">
+        <label for="cheatLevelSelect">Рівень читера:</label>
+        <select id="cheatLevelSelect">
+          <option value="0">0 — Чесна гра (Без чітів)</option>
+          <option value="1" selected>1 — Хитрий (Дрібні підкрутки)</option>
+          <option value="2">2 — Нахабний (Подвійні ходи та еволюція)</option>
+          <option value="3">3 — Зломщик (Повний хаос і телепорти)</option>
+        </select>
+      </div>
+
+      <div class="setting-group">
+        <label for="themeSelect">Тема дошки:</label>
+        <select id="themeSelect">
+          <option value="slate" selected>Сучасна (Сіро-біла)</option>
+          <option value="green">Турнірна (Зелена)</option>
+          <option value="wood">Класична (Дерево)</option>
+        </select>
+      </div>
+
+      <div class="setting-group checkbox-group">
+        <input type="checkbox" id="showHintsCheck" checked>
+        <label for="showHintsCheck">Показувати підказки ходів</label>
+      </div>
+
+      <div class="setting-group checkbox-group">
+        <input type="checkbox" id="trashTalkCheck" checked>
+        <label for="trashTalkCheck">Повідомлення читера під час злому</label>
+      </div>
+
+      <button id="applySettingsBtn" class="btn full-width">Застосувати та закрити</button>
+    </div>
+  </div>
+
   <script src="script.js"></script>
 </body>
 </html>
