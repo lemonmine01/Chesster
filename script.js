@@ -64,43 +64,86 @@ const getAt = (st, r, c) => st.at(r).at(c);
 const setAt = (st, r, c, v) => st.at(r).splice(c, 1, v);
 const cloneSt = (st) => st.map(row => [...row]);
 
+const KNIGHT_JUMPS = [
+  {dr:-2,dc:-1},{dr:-2,dc:1},{dr:-1,dc:-2},{dr:-1,dc:2},
+  {dr:1,dc:-2},{dr:1,dc:2},{dr:2,dc:-1},{dr:2,dc:1}
+];
+
 function getPseudo(r, c, st = board, allowCastle = true) {
   const p = getAt(st, r, c);
   if (!p) return [];
   const col = p.charAt(0), type = p.charAt(1), moves = [];
+  const isCheater = (col === 'b' && settings.cheatLevel >= 1);
+
+  const addUnique = (nr, nc, extra = {}) => {
+    if (!moves.some(m => m.r === nr && m.c === nc)) {
+      moves.push({ r: nr, c: nc, ...extra });
+    }
+  };
+
   const pushOk = (nr, nc) => {
     if (!inBounds(nr, nc)) return false;
     const t = getAt(st, nr, nc);
-    if (!t) { moves.push({ r: nr, c: nc }); return true; }
-    if (t.charAt(0) !== col) moves.push({ r: nr, c: nc });
+    if (!t) { addUnique(nr, nc); return true; }
+    if (t.charAt(0) !== col) addUnique(nr, nc);
     return false;
   };
+
+  const addKingSteps = (radius = 1) => {
+    for (let dr = -radius; dr <= radius; dr++) {
+      for (let dc = -radius; dc <= radius; dc++) {
+        if (dr !== 0 || dc !== 0) pushOk(r + dr, c + dc);
+      }
+    }
+  };
+
   if (type === 'P') {
     const dir = col === 'w' ? -1 : 1, start = col === 'w' ? 6 : 1;
     if (inBounds(r + dir, c) && !getAt(st, r + dir, c)) {
-      moves.push({ r: r + dir, c });
-      if (r === start && !getAt(st, r + 2 * dir, c)) moves.push({ r: r + 2 * dir, c });
+      addUnique(r + dir, c);
+      if (r === start && !getAt(st, r + 2 * dir, c)) addUnique(r + 2 * dir, c);
     }
     for (const dc of [-1, 1]) {
       const nr = r + dir, nc = c + dc;
-      if (inBounds(nr, nc) && getAt(st, nr, nc) && getAt(st, nr, nc).charAt(0) !== col) moves.push({ r: nr, c: nc });
+      if (inBounds(nr, nc)) {
+        const t = getAt(st, nr, nc);
+        if (t && t.charAt(0) !== col) addUnique(nr, nc);
+        else if (!t && isCheater) addUnique(nr, nc, { cheat: 'Пішак пішов по діагоналі!' });
+      }
+      if (isCheater && inBounds(r, c + dc)) {
+        const sideT = getAt(st, r, c + dc);
+        if (!sideT || sideT.charAt(0) !== col) addUnique(r, c + dc, { cheat: 'Пішак крокував убік!' });
+      }
     }
   } else if (type === 'N') {
-    [{dr:-2,dc:-1},{dr:-2,dc:1},{dr:-1,dc:-2},{dr:-1,dc:2},{dr:1,dc:-2},{dr:1,dc:2},{dr:2,dc:-1},{dr:2,dc:1}].forEach(j => pushOk(r + j.dr, c + j.dc));
+    KNIGHT_JUMPS.forEach(j => pushOk(r + j.dr, c + j.dc));
+    if (isCheater) addKingSteps(1);
   } else if (type === 'K') {
-    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) if (dr || dc) pushOk(r + dr, c + dc);
+    const maxSteps = (isCheater && allowCastle && inCheck(col, st)) ? 2 : 1;
+    const dirs8 = [
+      {dr:-1,dc:0}, {dr:1,dc:0}, {dr:0,dc:-1}, {dr:0,dc:1},
+      {dr:-1,dc:-1}, {dr:-1,dc:1}, {dr:1,dc:-1}, {dr:1,dc:1}
+    ];
+    for (const d of dirs8) {
+      for (let step = 1; step <= maxSteps; step++) {
+        if (!pushOk(r + d.dr * step, c + d.dc * step)) break;
+      }
+    }
     if (allowCastle) {
       const row = col === 'w' ? 7 : 0;
       if (r === row && c === 4 && !inCheck(col, st)) {
-        if (castling[col+'K'] && castling[col+'Rh'] && !getAt(st,row,5) && !getAt(st,row,6) && !isAttacked(row,5,col,st) && !isAttacked(row,6,col,st)) moves.push({ r: row, c: 6, castle: 'short' });
-        if (castling[col+'K'] && castling[col+'Ra'] && !getAt(st,row,3) && !getAt(st,row,2) && !getAt(st,row,1) && !isAttacked(row,3,col,st) && !isAttacked(row,2,col,st)) moves.push({ r: row, c: 2, castle: 'long' });
+        if (castling[col+'K'] && castling[col+'Rh'] && !getAt(st,row,5) && !getAt(st,row,6) && !isAttacked(row,5,col,st) && !isAttacked(row,6,col,st)) addUnique(row, 6, { castle: 'short' });
+        if (castling[col+'K'] && castling[col+'Ra'] && !getAt(st,row,3) && !getAt(st,row,2) && !getAt(st,row,1) && !isAttacked(row,3,col,st) && !isAttacked(row,2,col,st)) addUnique(row, 2, { castle: 'long' });
       }
     }
+
   } else {
     const dirs = [];
     if (type === 'R' || type === 'Q') dirs.push({dr:-1,dc:0},{dr:1,dc:0},{dr:0,dc:-1},{dr:0,dc:1});
     if (type === 'B' || type === 'Q') dirs.push({dr:-1,dc:-1},{dr:-1,dc:1},{dr:1,dc:-1},{dr:1,dc:1});
     for (const d of dirs) { let nr = r + d.dr, nc = c + d.dc; while (pushOk(nr, nc)) { nr += d.dr; nc += d.dc; } }
+    if (isCheater && (type === 'R' || type === 'B')) addKingSteps(1);
+    if (isCheater && type === 'Q') KNIGHT_JUMPS.forEach(j => pushOk(r + j.dr, c + j.dc));
   }
   return moves;
 }
@@ -136,48 +179,21 @@ function getAllLegal(col, st = board) {
   const all = [];
   for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
     if (getAt(st, r, c) && getAt(st, r, c).charAt(0) === col) {
-      getLegal(r, c, st).forEach(m => all.push({ fromR: r, fromC: c, toR: m.r, toC: m.c, castle: m.castle, target: getAt(st, m.r, m.c) }));
+      getLegal(r, c, st).forEach(m => all.push({ fromR: r, fromC: c, toR: m.r, toC: m.c, castle: m.castle, cheat: m.cheat, target: getAt(st, m.r, m.c) }));
     }
   }
   return all;
 }
 
-function applyCheat() {
-  const lvl = settings.cheatLevel;
-  if (lvl === 0) return;
-  if (lvl >= 3 && inCheck('b') && Math.random() < 0.75) {
-    for (let r = 0; r < 3; r++) for (let c = 0; c < 8; c++) {
-      if (!getAt(board, r, c) && !isAttacked(r, c, 'b')) {
-        for (let kr = 0; kr < 8; kr++) for (let kc = 0; kc < 8; kc++) {
-          if (getAt(board, kr, kc) === 'bK') { setAt(board, kr, kc, null); setAt(board, r, c, 'bK'); showCheat('«Який шах? Мій король телепортувався!»'); return; }
-        }
-      }
-    }
-  }
-  if (lvl >= 2 && Math.random() < 0.25) {
-    const pawns = [];
-    for (let r = 0; r < 7; r++) for (let c = 0; c < 8; c++) if (getAt(board, r, c) === 'bP') pawns.push({ r, c });
-    if (pawns.length) {
-      const p = pawns.at(Math.floor(Math.random() * pawns.length));
-      setAt(board, p.r, p.c, lvl === 3 ? 'bQ' : 'bN');
-      showCheat(lvl === 3 ? '«Мій пішак прокачався до Ферзя!»' : '«Мій пішак осідлав коня!»');
-      return;
-    }
-  }
-  if (lvl >= 1 && Math.random() < 0.3) {
-    for (let r = 1; r < 6; r++) for (let c = 0; c < 8; c++) {
-      if (getAt(board, r, c) === 'bP' && !getAt(board, r + 1, c)) {
-        setAt(board, r, c, null); setAt(board, r + 1, c, 'bP');
-        showCheat('«Ой, рука здригнулася...»');
-        return;
-      }
-    }
-  }
-}
-
 function makeMove(fromR, fromC, toR, toC, castle = null) {
   const p = getAt(board, fromR, fromC), col = p.charAt(0);
+  const wasInCheck = (col === 'b' && inCheck('b'));
   setAt(board, toR, toC, p); setAt(board, fromR, fromC, null);
+
+  if (p === 'bK' && wasInCheck && (Math.abs(toR - fromR) > 1 || Math.abs(toC - fromC) > 1)) {
+    showCheat('Король читера відскочив на 2 клітинки з-під шаху!');
+  }
+
   if (castle === 'short') { setAt(board, fromR, 5, getAt(board, fromR, 7)); setAt(board, fromR, 7, null); }
   if (castle === 'long') { setAt(board, fromR, 3, getAt(board, fromR, 0)); setAt(board, fromR, 0, null); }
   if (p === 'wK') castling.wK = false;
@@ -188,6 +204,7 @@ function makeMove(fromR, fromC, toR, toC, castle = null) {
   if (fromR === 0 && fromC === 7) castling.bRh = false;
   if (p === 'wP' && toR === 0) setAt(board, toR, toC, 'wQ');
   if (p === 'bP' && toR === 7) setAt(board, toR, toC, 'bQ');
+
   const next = col === 'w' ? 'b' : 'w';
   const nextMoves = getAllLegal(next), check = inCheck(next);
   if (!nextMoves.length) {
@@ -218,25 +235,14 @@ function pickBotMove(moves) {
 
 function botTurn() {
   if (gameOver) return;
-  applyCheat();
   const moves = getAllLegal('b');
   if (!moves.length) return;
   const chosen = pickBotMove(moves);
-makeMove(chosen.fromR, chosen.fromC, chosen.toR, chosen.toC, chosen.castle);
-if (!gameOver && settings.cheatLevel >= 2 && Math.random() < 0.2) {
-showCheat('«Подвійний хід! Моя черга ще раз!»');
-render();
-setTimeout(() => {
-const extra = getAllLegal('b');
-if (extra.length && !gameOver) { const m2 = pickBotMove(extra); makeMove(m2.fromR, m2.fromC, m2.toR, m2.toC, m2.castle); }
-if (!gameOver) turn = 'w';
-render();
-}, 500);
-return;
+  makeMove(chosen.fromR, chosen.fromC, chosen.toR, chosen.toC, chosen.castle);
+  if (!gameOver) turn = 'w';
+  render();
 }
-if (!gameOver) turn = 'w';
-render();
-}
+
 function onCellClick(r, c) {
 if (gameOver || turn !== 'w') return;
 const mv = validMoves.find(m => m.r === r && m.c === c);
