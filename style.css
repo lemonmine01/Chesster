@@ -72,39 +72,53 @@ h1 {
   font-size: 42px;
   cursor: pointer;
   position: relative;
+  transition: background-color 0.15s ease;
 }
 
-.board.theme-slate .cell.light, .cell.light { background: #e2e8f0; }
-.board.theme-slate .cell.dark,  .cell.dark  { background: #64748b; }
+/* 8 тем дошки (чіткі селектори без конфліктів) */
+.board.theme-slate .cell.light   { background: #e2e8f0; }
+.board.theme-slate .cell.dark    { background: #64748b; }
 
-.board.theme-green .cell.light { background: #eeeed2; }
-.board.theme-green .cell.dark  { background: #769656; }
+.board.theme-bw .cell.light      { background: #f8fafc; }
+.board.theme-bw .cell.dark       { background: #27272a; }
 
-.board.theme-wood .cell.light  { background: #f0d9b5; }
-.board.theme-wood .cell.dark   { background: #b58863; }
+.board.theme-green .cell.light   { background: #eeeed2; }
+.board.theme-green .cell.dark    { background: #769656; }
 
-.board.theme-bw .cell.light { background: #f8fafc; }
-.board.theme-bw .cell.dark  { background: #27272a; }
+.board.theme-wood .cell.light    { background: #f0d9b5; }
+.board.theme-wood .cell.dark     { background: #b58863; }
 
-.board.theme-bw .piece-black {
-  color: #09090b;
-  text-shadow: 0 0 3px #ffffff, 0 0 1px #ffffff; }
+.board.theme-ocean .cell.light   { background: #dbeafe; }
+.board.theme-ocean .cell.dark    { background: #2563eb; }
+
+.board.theme-crimson .cell.light { background: #fee2e2; }
+.board.theme-crimson .cell.dark  { background: #991b1b; }
+
+.board.theme-purple .cell.light  { background: #f3e8ff; }
+.board.theme-purple .cell.dark   { background: #6b21a8; }
+
+.board.theme-cyber .cell.light   { background: #1e293b; }
+.board.theme-cyber .cell.dark    { background: #09090b; }
 
 .cell.selected {
   background: #facc15 !important;
+}
+
+.cell.last-move {
+  box-shadow: inset 0 0 0 4px rgba(56, 189, 248, 0.85);
 }
 
 .cell.valid-move::after {
   content: '';
   width: 18px;
   height: 18px;
-  background: rgba(34, 197, 94, 0.75);
+  background: rgba(34, 197, 94, 0.85);
   border-radius: 50%;
   position: absolute;
 }
 
 .cell.valid-capture {
-  box-shadow: inset 0 0 0 4px rgba(239, 68, 68, 0.85);
+  box-shadow: inset 0 0 0 4px rgba(239, 68, 68, 0.9);
 }
 
 .piece-white {
@@ -114,7 +128,7 @@ h1 {
 
 .piece-black {
   color: #09090b;
-  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.4);
+  text-shadow: 0 0 3px rgba(255, 255, 255, 0.7), 0 0 1px #ffffff;
 }
 
 .btn {
@@ -138,7 +152,6 @@ h1 {
   margin-top: 8px;
 }
 
-/* Велика кнопка шестерні справа знизу */
 .settings-btn {
   position: fixed;
   right: 26px;
@@ -249,4 +262,3 @@ h1 {
   accent-color: #38bdf8;
 }
 
-.cell.last-move { box-shadow: inset 0 0 0 4px rgba(56, 189, 248, 0.85); }
