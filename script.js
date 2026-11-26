@@ -42,12 +42,20 @@ function isInside(r, c) {
   return r >= 0 && r < 8 && c >= 0 && c < 8;
 }
 
+function getAt(state, r, c) {
+  return state.at(r).at(c);
+}
+
+function setAt(state, r, c, val) {
+  state.at(r).splice(c, 1, val);
+}
+
 function cloneBoard(state) {
   return state.map(row => [...row]);
 }
 
 function getPseudoMoves(r, c, state = board, includeCastling = true) {
-  const piece = state[r][c];
+  const piece = getAt(state, r, c);
   if (!piece) return [];
   const color = piece.charAt(0);
   const type = piece.charAt(1);
@@ -55,7 +63,7 @@ function getPseudoMoves(r, c, state = board, includeCastling = true) {
 
   const addIfValid = (nr, nc) => {
     if (!isInside(nr, nc)) return false;
-    const target = state[nr][nc];
+    const target = getAt(state, nr, nc);
     if (!target) {
       moves.push({ r: nr, c: nc });
       return true;
@@ -69,17 +77,20 @@ function getPseudoMoves(r, c, state = board, includeCastling = true) {
   if (type === 'P') {
     const dir = color === 'w' ? -1 : 1;
     const startRow = color === 'w' ? 6 : 1;
-    if (isInside(r + dir, c) && !state[r + dir][c]) {
+    if (isInside(r + dir, c) && !getAt(state, r + dir, c)) {
       moves.push({ r: r + dir, c });
-      if (r === startRow && !state[r + 2 * dir][c]) {
+      if (r === startRow && !getAt(state, r + 2 * dir, c)) {
         moves.push({ r: r + 2 * dir, c });
       }
     }
     for (const dc of [-1, 1]) {
       const nr = r + dir;
       const nc = c + dc;
-      if (isInside(nr, nc) && state[nr][nc] && state[nr][nc].charAt(0) !== color) {
-        moves.push({ r: nr, c: nc });
+      if (isInside(nr, nc)) {
+        const target = getAt(state, nr, nc);
+        if (target && target.charAt(0) !== color) {
+          moves.push({ r: nr, c: nc });
+        }
       }
     }
   } else if (type === 'N') {
@@ -102,14 +113,14 @@ function getPseudoMoves(r, c, state = board, includeCastling = true) {
       const row = color === 'w' ? 7 : 0;
       if (r === row && c === 4 && !isKingInCheck(color, state)) {
         if (castlingRights[color + 'K'] && castlingRights[color + 'R_h']) {
-          if (!state[row][5] && !state[row][6] &&
+          if (!getAt(state, row, 5) && !getAt(state, row, 6) &&
               !isSquareAttacked(row, 5, color, state) &&
               !isSquareAttacked(row, 6, color, state)) {
             moves.push({ r: row, c: 6, castle: 'short' });
           }
         }
         if (castlingRights[color + 'K'] && castlingRights[color + 'R_a']) {
-          if (!state[row][1] && !state[row][2] && !state[row][3] &&
+          if (!getAt(state, row, 3) && !getAt(state, row, 2) && !getAt(state, row, 1) &&
               !isSquareAttacked(row, 3, color, state) &&
               !isSquareAttacked(row, 2, color, state)) {
             moves.push({ r: row, c: 2, castle: 'long' });
@@ -141,7 +152,7 @@ function isSquareAttacked(targetR, targetC, defenderColor, state = board) {
   const attackerColor = defenderColor === 'w' ? 'b' : 'w';
   for (let r = 0; r < 8; r++) {
     for (let c = 0; c < 8; c++) {
-      const p = state[r][c];
+      const p = getAt(state, r, c);
       if (p && p.charAt(0) === attackerColor) {
         const moves = getPseudoMoves(r, c, state, false);
         if (moves.some(m => m.r === targetR && m.c === targetC)) {
@@ -156,7 +167,7 @@ function isSquareAttacked(targetR, targetC, defenderColor, state = board) {
 function isKingInCheck(color, state = board) {
   for (let r = 0; r < 8; r++) {
     for (let c = 0; c < 8; c++) {
-      if (state[r][c] === color + 'K') {
+      if (getAt(state, r, c) === color + 'K') {
         return isSquareAttacked(r, c, color, state);
       }
     }
@@ -165,21 +176,21 @@ function isKingInCheck(color, state = board) {
 }
 
 function getLegalMoves(r, c, state = board) {
-  const piece = state[r][c];
+  const piece = getAt(state, r, c);
   if (!piece) return [];
   const color = piece.charAt(0);
   const pseudo = getPseudoMoves(r, c, state, true);
 
   return pseudo.filter(move => {
     const sim = cloneBoard(state);
-    sim[move.r][move.c] = sim[r][c];
-    sim[r][c] = null;
+    setAt(sim, move.r, move.c, getAt(sim, r, c));
+    setAt(sim, r, c, null);
     if (move.castle === 'short') {
-      sim[r][5] = sim[r][7];
-      sim[r][7] = null;
+      setAt(sim, r, 5, getAt(sim, r, 7));
+      setAt(sim, r, 7, null);
     } else if (move.castle === 'long') {
-      sim[r][3] = sim[r][0];
-      sim[r][0] = null;
+      setAt(sim, r, 3, getAt(sim, r, 0));
+      setAt(sim, r, 0, null);
     }
     return !isKingInCheck(color, sim);
   });
@@ -189,10 +200,11 @@ function getAllLegalMoves(color, state = board) {
   const all = [];
   for (let r = 0; r < 8; r++) {
     for (let c = 0; c < 8; c++) {
-      if (state[r][c] && state[r][c].charAt(0) === color) {
+      const p = getAt(state, r, c);
+      if (p && p.charAt(0) === color) {
         const moves = getLegalMoves(r, c, state);
         for (const m of moves) {
-          all.push({ fromR: r, fromC: c, toR: m.r, toC: m.c, castle: m.castle, target: state[m.r][m.c] });
+          all.push({ fromR: r, fromC: c, toR: m.r, toC: m.c, castle: m.castle, target: getAt(state, m.r, m.c) });
         }
       }
     }
@@ -201,18 +213,18 @@ function getAllLegalMoves(color, state = board) {
 }
 
 function makeMove(fromR, fromC, toR, toC, castle = null) {
-  const movingPiece = board[fromR][fromC];
+  const movingPiece = getAt(board, fromR, fromC);
   const color = movingPiece.charAt(0);
 
-  board[toR][toC] = movingPiece;
-  board[fromR][fromC] = null;
+  setAt(board, toR, toC, movingPiece);
+  setAt(board, fromR, fromC, null);
 
   if (castle === 'short') {
-    board[fromR][5] = board[fromR][7];
-    board[fromR][7] = null;
+    setAt(board, fromR, 5, getAt(board, fromR, 7));
+    setAt(board, fromR, 7, null);
   } else if (castle === 'long') {
-    board[fromR][3] = board[fromR][0];
-    board[fromR][0] = null;
+    setAt(board, fromR, 3, getAt(board, fromR, 0));
+    setAt(board, fromR, 0, null);
   }
 
   if (movingPiece === 'wK') castlingRights.wK = false;
@@ -222,8 +234,8 @@ function makeMove(fromR, fromC, toR, toC, castle = null) {
   if (fromR === 0 && fromC === 0) castlingRights.bR_a = false;
   if (fromR === 0 && fromC === 7) castlingRights.bR_h = false;
 
-  if (movingPiece === 'wP' && toR === 0) board[toR][toC] = 'wQ';
-  if (movingPiece === 'bP' && toR === 7) board[toR][toC] = 'bQ';
+  if (movingPiece === 'wP' && toR === 0) setAt(board, toR, toC, 'wQ');
+  if (movingPiece === 'bP' && toR === 7) setAt(board, toR, toC, 'bQ');
 
   const nextColor = color === 'w' ? 'b' : 'w';
   const nextMoves = getAllLegalMoves(nextColor);
@@ -295,7 +307,7 @@ function onCellClick(r, c) {
     return;
   }
 
-  const piece = board[r][c];
+  const piece = getAt(board, r, c);
   if (piece && piece.charAt(0) === 'w') {
     selected = { r, c };
     validMoves = getLegalMoves(r, c);
@@ -319,23 +331,10 @@ function render() {
 
       const isMove = validMoves.some(m => m.r === r && m.c === c);
       if (isMove) {
-        if (board[r][c]) cell.classList.add('valid-capture');
+        if (getAt(board, r, c)) cell.classList.add('valid-capture');
         else cell.classList.add('valid-move');
       }
 
-      const piece = board[r][c];
+      const piece = getAt(board, r, c);
       if (piece) {
         const span = document.createElement('span');
-        span.textContent = SYMBOLS[piece];
-        span.className = piece.charAt(0) === 'w' ? 'piece-white' : 'piece-black';
-        cell.appendChild(span);
-      }
-
-      cell.addEventListener('click', () => onCellClick(r, c));
-      boardEl.appendChild(cell);
-    }
-  }
-}
-
-restartBtn.addEventListener('click', initBoard);
-initBoard();
