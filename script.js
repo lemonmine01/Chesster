@@ -338,3 +338,16 @@ function render() {
       const piece = getAt(board, r, c);
       if (piece) {
         const span = document.createElement('span');
+        span.textContent = SYMBOLS[piece];
+        span.className = piece.charAt(0) === 'w' ? 'piece-white' : 'piece-black';
+        cell.appendChild(span);
+      }
+
+      cell.addEventListener('click', () => onCellClick(r, c));
+      boardEl.appendChild(cell);
+    }
+  }
+}
+
+restartBtn.addEventListener('click', initBoard);
+initBoard();
