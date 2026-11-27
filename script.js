@@ -549,9 +549,10 @@ function finalizeMoveLogic(fromR, fromC, toR, toC, castle = null, cheatMsg = nul
     }
   }
 
-  if (col === 'b' && settings.cheatLevel >= 3 && wasBlackInCheck && p !== 'bK' && !capturedPiece) {
+   if (col === 'b' && settings.cheatLevel >= 3 && wasBlackInCheck && p !== 'bK' && !capturedPiece) {
     let attackerPos = null;
     for (let r = 0; r < 8; r++) {
+
   const next = col === 'w' ? 'b' : 'w';
   const nextMoves = getAllLegal(next), check = inCheck(next);
 
