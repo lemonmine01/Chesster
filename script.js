@@ -63,7 +63,7 @@ let settings = {
   showHints: true,
   showMaterial: false,
   trashTalk: false
-  
+
 };
 
 let matchConfig = {
@@ -460,6 +460,7 @@ if (settings.moveAnim === 'instant' || !piece) {
 onComplete();
 return;
 }
+
   if (settings.moveAnim === 'smooth') {
     playSound('smooth');
   }
