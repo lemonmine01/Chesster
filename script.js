@@ -73,7 +73,9 @@ let matchConfig = {
   whiteType: 'you',
   blackType: 'bot',
   cheaterRole: 'black'
-  const STORAGE_KEY = 'chesster_prefs_v1';
+};
+
+const STORAGE_KEY = 'chesster_prefs_v1';
 
 function saveAllPrefs() {
   try {
