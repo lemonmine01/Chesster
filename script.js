@@ -46,7 +46,7 @@ function playSound(name) {
   if (!snd) return;
   snd.volume = settings.soundVolume;
   snd.currentTime = 0;
-  snd.play().catch(() => {});
+  snd.play().catch(function() {});
 }
 
 const SYMBOLS = { wP:'♟', wR:'♜', wN:'♞', wB:'♝', wQ:'♛', wK:'♚', bP:'♟', bR:'♜', bN:'♞', bB:'♝', bQ:'♛', bK:'♚' };
@@ -63,7 +63,7 @@ let settings = {
   showHints: true,
   showMaterial: false,
   trashTalk: false
-  let settings
+  
 };
 
 let matchConfig = {
