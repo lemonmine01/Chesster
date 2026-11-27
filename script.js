@@ -885,13 +885,12 @@ if (isBotTurn('w')) {
 botTimer = setTimeout(() => runBotTurn('w'), 350);
 }
 };
-menuBtn.onclick = () =>
-gameStarted = false;
-clearTimeout(botTimer);
-menuBtn.classList.add('hidden');
-boardOverlayEl.classList.remove('hidden');
-restartBtn.classList.remove('hidden');
-settingsBtn.classList.remove('hidden');
-initBoard();
-loadAllPrefs();
-initBoard();
+menuBtn.onclick = () => {
+  gameStarted = false;
+  clearTimeout(botTimer);
+  menuBtn.classList.add('hidden');
+  boardOverlayEl.classList.remove('hidden');
+  restartBtn.classList.remove('hidden');
+  settingsBtn.classList.remove('hidden');
+  initBoard();
+};
