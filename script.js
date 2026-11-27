@@ -309,10 +309,13 @@ function getLegal(r, c, st = board) {
   if (!p) return [];
   const col = p.charAt(0);
   return getPseudo(r, c, st, true).filter(m => {
+    // Білим заборонено фізично брати чорного короля (тільки читер може збити короля!)
+    if (col === 'w' && getAt(st, m.r, m.c) === 'bK') return false;
     const sim = applySimMove(st, { fromR: r, fromC: c, toR: m.r, toC: m.c, castle: m.castle });
     return !inCheck(col, sim);
   });
 }
+
 
 
 function getAllLegal(col, st = board) {
