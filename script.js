@@ -405,7 +405,7 @@ break;
 setAt(board, guardPos.r, guardPos.c, null);
 setAt(board, nearKing.r, nearKing.c, guardPos.piece);
 lastMove = { fromR: guardPos.r, fromC: guardPos.c, toR: nearKing.r, toC: nearKing.c };
-showCheat(Анти-Мат! Охоронець знищив матуючого та весь захист (${wiped} шт.) і став біля короля!);
+showCheat('Анти-Мат! Охоронець знищив матуючого та весь захист (' + wiped + ' шт.) і став біля короля!');
 nextMoves = getAllLegal('b');
 check = inCheck('b');
 }
