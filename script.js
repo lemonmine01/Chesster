@@ -86,7 +86,8 @@ function saveAllPrefs() {
   } catch (e) {}
 }
 
-function loadAllPrefs() {
+}
+
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return;
@@ -111,11 +112,11 @@ function loadAllPrefs() {
     if (volumeValLabel) volumeValLabel.textContent = pct + '%';
   }
 
-  if (whitePlayerSelect) whitePlayerSelect.value = matchConfig.whiteType;
+    if (whitePlayerSelect) whitePlayerSelect.value = matchConfig.whiteType;
   if (blackPlayerSelect) blackPlayerSelect.value = matchConfig.blackType;
   if (cheaterRoleSelect) cheaterRoleSelect.value = matchConfig.cheaterRole;
-  
-};
+}
+
 
 let board = [], turn = 'w', selected = null, validMoves = [], gameOver = false, lastMove = null, isAnimating = false, gameStarted = false;
 let castling = { wK: true, wRa: true, wRh: true, bK: true, bRa: true, bRh: true };
