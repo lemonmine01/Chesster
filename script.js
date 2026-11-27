@@ -114,7 +114,7 @@ function loadAllPrefs() {
   if (whitePlayerSelect) whitePlayerSelect.value = matchConfig.whiteType;
   if (blackPlayerSelect) blackPlayerSelect.value = matchConfig.blackType;
   if (cheaterRoleSelect) cheaterRoleSelect.value = matchConfig.cheaterRole;
-}
+  
 };
 
 let board = [], turn = 'w', selected = null, validMoves = [], gameOver = false, lastMove = null, isAnimating = false, gameStarted = false;
