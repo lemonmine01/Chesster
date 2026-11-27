@@ -607,11 +607,17 @@ function getPosBonus(piece, r, c) {
   const col = piece.charAt(0);
   const type = piece.charAt(1);
   const pr = col === 'w' ? r : 7 - r;
-  if (type === 'P') return PST_PAWN.at(pr).at(c);
+  if (type === 'P') {
+    const centerFile = (c === 3 || c === 4) ? 12 : 0;
+    return (7 - pr) * 6 + centerFile;
+  }
   if (type === 'N') return PST_KNIGHT.at(pr).at(c);
   if (type === 'B') return PST_BISHOP.at(pr).at(c);
   if (type === 'Q') return PST_QUEEN.at(pr).at(c);
-  if (type === 'K') return PST_KING_SAFE.at(pr).at(c);
+  if (type === 'K') {
+    const safeCorner = (pr === 7 && (c <= 2 || c >= 6)) ? 25 : -25;
+    return safeCorner;
+  }
   return (pr === 0) ? 10 : 0;
 }
 
