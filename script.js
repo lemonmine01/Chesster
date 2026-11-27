@@ -487,8 +487,9 @@ function animatePieceMove(fromR, fromC, toR, toC, piece, onComplete) {
       ghost.style.left = (st.c * 60) + 'px';
       ghost.style.top = (st.r * 60) + 'px';
       idx++;
-    }, 105);
+     }, 105);
   }
+}
 
 function checkGameEndAndContinue(lastMoverCol, afterAllCallback) {
   const wKing = findKingPos('w', board);
