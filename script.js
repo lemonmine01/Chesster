@@ -547,7 +547,165 @@ if (score > bestScore) { bestScore = score; bestList = [m]; }
 else if (Math.abs(score - bestScore) < 5) bestList.push(m);
 }
 return bestList.at(Math.floor(Math.random() * bestList.length));
+
+const PST_PAWN = [
+  [ 0,  0,  0,  0,  0,  0,  0,  0],
+,
+ ,
+  [ 5,  5, 10, 26, 26, 10,  5,  5],
+  [ 0,  0,  0, 22, 22,  0,  0,  0],
+  [ 5, -5,-10,  0,  0,-10, -5,  5],
+  [ 5, 10, 10,-22,-22, 10, 10,  5],
+  [ 0,  0,  0,  0,  0,  0,  0,  0]
+];
+
+const PST_KNIGHT = [
+  [-50,-40,-30,-30,-30,-30,-40,-50],
+  [-40,-20,  0,  0,  0,  0,-20,-40],
+  [-30,  0, 14, 18, 18, 14,  0,-30],
+  [-30,  6, 18, 24, 24, 18,  6,-30],
+  [-30,  0, 18, 24, 24, 18,  0,-30],
+  [-30,  6, 14, 18, 18, 14,  6,-30],
+  [-40,-20,  0,  6,  6,  0,-20,-40],
+  [-50,-40,-30,-30,-30,-30,-40,-50]
+];
+
+const PST_BISHOP = [
+  [-20,-10,-10,-10,-10,-10,-10,-20],
+  [-10,  0,  0,  0,  0,  0,  0,-10],
+  [-10,  0,  8, 12, 12,  8,  0,-10],
+  [-10,  6,  6, 12, 12,  6,  6,-10],
+  [-10,  0, 12, 12, 12, 12,  0,-10],
+  [-10, 12, 12, 12, 12, 12, 12,-10],
+  [-10,  6,  0,  0,  0,  0,  6,-10],
+  [-20,-10,-10,-10,-10,-10,-10,-20]
+];
+
+const PST_QUEEN = [
+  [-20,-10,-10, -5, -5,-10,-10,-20],
+  [-10,  0,  0,  0,  0,  0,  0,-10],
+  [-10,  0,  5,  5,  5,  5,  0,-10],
+  [ -5,  0,  5,  6,  6,  5,  0, -5],
+  [  0,  0,  5,  6,  6,  5,  0, -5],
+  [-10,  5,  5,  5,  5,  5,  0,-10],
+  [-10,  0,  5,  0,  0,  0,  0,-10],
+  [-20,-10,-10, -5, -5,-10,-10,-20]
+];
+
+const PST_KING_SAFE = [
+  [-30,-40,-40,-50,-50,-40,-40,-30],
+  [-30,-40,-40,-50,-50,-40,-40,-30],
+  [-30,-40,-40,-50,-50,-40,-40,-30],
+  [-30,-40,-40,-50,-50,-40,-40,-30],
+  [-20,-30,-30,-40,-40,-30,-30,-20],
+  [-10,-20,-20,-20,-20,-20,-20,-10],
+  [ 20, 20,  0,  0,  0,  0, 20, 20],
+  [ 20, 30, 10,  0,  0, 10, 30, 20]
+];
+
+function getPosBonus(piece, r, c) {
+  const col = piece.charAt(0);
+  const type = piece.charAt(1);
+  const pr = col === 'w' ? r : 7 - r;
+  if (type === 'P') return PST_PAWN.at(pr).at(c);
+  if (type === 'N') return PST_KNIGHT.at(pr).at(c);
+  if (type === 'B') return PST_BISHOP.at(pr).at(c);
+  if (type === 'Q') return PST_QUEEN.at(pr).at(c);
+  if (type === 'K') return PST_KING_SAFE.at(pr).at(c);
+  return (pr === 0) ? 10 : 0;
 }
+
+function evaluateBoard(st, botCol) {
+  let score = 0;
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const p = getAt(st, r, c);
+      if (!p) continue;
+      const col = p.charAt(0);
+      const pts = VALUES[p.charAt(1)] + getPosBonus(p, r, c);
+      score += col === botCol ? pts : -pts;
+    }
+  }
+
+  const fRow = botCol === 'b' ? 1 : 6;
+  const oppCol = botCol === 'w' ? 'b' : 'w';
+  if (isAttacked(fRow, 5, botCol, st)) score -= 85;
+  if (isAttacked(fRow === 1 ? 0 : 7, 4, botCol, st)) score -= 60;
+  if (isAttacked(botCol === 'b' ? 6 : 1, 5, oppCol, st)) score += 75;
+
+  return score;
+}
+
+function sortMovesFast(moves) {
+  return moves.sort((a, b) => {
+    const scoreA = (a.target ? VALUES[a.target.charAt(1)] * 10 : 0) + (a.cheat ? 40 : 0);
+    const scoreB = (b.target ? VALUES[b.target.charAt(1)] * 10 : 0) + (b.cheat ? 40 : 0);
+    return scoreB - scoreA;
+  });
+}
+
+function minimax(st, depth, alpha, beta, isMax, botCol) {
+  const oppCol = botCol === 'w' ? 'b' : 'w';
+  const curCol = isMax ? botCol : oppCol;
+  let moves = getAllLegal(curCol, st);
+  if (!moves.length) {
+    if (inCheck(curCol, st)) return isMax ? -99999 - depth * 100 : 99999 + depth * 100;
+    return 0;
+  }
+  if (depth === 0) return evaluateBoard(st, botCol);
+
+  moves = sortMovesFast(moves);
+
+  if (isMax) {
+    let maxEval = -Infinity;
+    for (const m of moves) {
+      const ev = minimax(applySimMove(st, m), depth - 1, alpha, beta, false, botCol);
+      if (ev > maxEval) maxEval = ev;
+      if (ev > alpha) alpha = ev;
+      if (beta <= alpha) break;
+    }
+    return maxEval;
+  } else {
+    let minEval = Infinity;
+    for (const m of moves) {
+      const ev = minimax(applySimMove(st, m), depth - 1, alpha, beta, true, botCol);
+      if (ev < minEval) minEval = ev;
+      if (ev < beta) beta = ev;
+      if (beta <= alpha) break;
+    }
+    return minEval;
+  }
+}
+
+function pickBotMove(moves, botCol) {
+  if (settings.difficulty === 'easy') {
+    const cheatMoves = moves.filter(m => m.cheat);
+    if (cheatMoves.length && Math.random() < 0.45) return cheatMoves.at(Math.floor(Math.random() * cheatMoves.length));
+    return moves.at(Math.floor(Math.random() * moves.length));
+  }
+
+  const depth = settings.difficulty === 'medium' ? 2 : 3;
+  const randomNoise = settings.difficulty === 'grandmaster' ? 1 : (settings.difficulty === 'hard' ? 4 : 12);
+  const orderedMoves = sortMovesFast([...moves]);
+
+  let bestScore = -Infinity, bestList = [];
+  for (const m of orderedMoves) {
+    const sim = applySimMove(board, m);
+    let score = minimax(sim, depth - 1, -Infinity, Infinity, false, botCol);
+
+    if (m.cheat) score += m.swap ? 20 : 45;
+    score += Math.random() * randomNoise;
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestList = [m];
+    } else if (Math.abs(score - bestScore) < 3) {
+      bestList.push(m);
+    }
+  }
+  return bestList.at(Math.floor(Math.random() * bestList.length));
+}
+
 function spawnCaptureFade(r, c, piece) {
 if (settings.captureAnim !== 'fade' || !piece) return;
 const ghost = document.createElement('div');
