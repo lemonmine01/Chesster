@@ -125,6 +125,12 @@ h1 {
 .board.theme-DarkWood .cell.light   { background: #f0c48a; }
 .board.theme-DarkWood .cell.dark    { background: #2d1d0a; }
 
+.board.theme-acacia .cell.light   { background: rgb(255, 195, 130); }
+.board.theme-acacia .cell.dark    { background: #cf7b15; }
+
+.board.theme-birch .cell.light   { background: rgb(254, 220, 169); }
+.board.theme-birch .cell.dark    { background: #ebc683; }
+
 
 .cell.selected {
   background: #facc15 !important;
