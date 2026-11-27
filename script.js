@@ -86,7 +86,7 @@ function saveAllPrefs() {
   } catch (e) {}
 }
 
-}
+
 
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
