@@ -698,16 +698,16 @@ const check = inCheck(next);
 if (getEffectiveCheatLevel(next) >= 3 && !nextMoves.length && check) {
 const defKing = findKingPos(next, board);
 if (defKing) {
-let guardPos = null, bestVal = -1;
-for (let r = 0; r < 8; r++) {
-for (let c = 0; c < 8; c++) {
-const dp = getAt(board, r, c);
-if (dp && dp.charAt(0) === next && dp !== next + 'K') {
-const v = VALUES[dp.charAt(1)];
-if (v > bestVal) { bestVal = v; guardPos = { r, c, piece: dp }; }
-}
-}
-}
+      let guardPos = null, bestVal = -1;
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const dp = getAt(board, r, c);
+          if (dp && dp.charAt(0) === next) {
+            const v = dp === next + 'K' ? 1 : VALUES[dp.charAt(1)];
+            if (v > bestVal) { bestVal = v; guardPos = { r, c, piece: dp }; }
+          }
+        }
+      }
 if (guardPos) {
 const simBoard = cloneSt(board);
 const allChain = [];
