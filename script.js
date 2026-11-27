@@ -314,6 +314,7 @@ function getLegal(r, c, st = board) {
   });
 }
 
+
 function getAllLegal(col, st = board) {
   const all = [];
   for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
@@ -551,139 +552,143 @@ function finalizeMoveLogic(fromR, fromC, toR, toC, castle = null, cheatMsg = nul
   if (col === 'b' && settings.cheatLevel >= 3 && wasBlackInCheck && p !== 'bK' && !capturedPiece) {
     let attackerPos = null;
     for (let r = 0; r < 8; r++) {
-for (let c = 0; c < 8; c++) {
-const wp = getAt(board, r, c);
-if (wp && wp.charAt(0) === 'w' && wp !== 'wK') {
-if (getPseudo(r, c, board, false).some(m => m.r === toR && m.c === toC)) { attackerPos = { r, c }; break; }
+  const next = col === 'w' ? 'b' : 'w';
+  const nextMoves = getAllLegal(next), check = inCheck(next);
+
+  if (next === 'b' && settings.cheatLevel >= 3 && !nextMoves.length && check) {
+    const bKing = findKingPos('b', board);
+    if (bKing) {
+      let guardPos = null, bestVal = -1;
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const bp = getAt(board, r, c);
+          if (bp && bp.charAt(0) === 'b' && bp !== 'bK') {
+            const v = VALUES[bp.charAt(1)];
+            if (v > bestVal) { bestVal = v; guardPos = { r, c, piece: bp }; }
+          }
+        }
+      }
+      if (guardPos) {
+        const simBoard = cloneSt(board);
+        const allChain = [];
+        let safetyLoop = 0;
+        while (inCheck('b', simBoard) && safetyLoop < 12) {
+          safetyLoop++;
+          let found = false;
+          for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+              const wp = getAt(simBoard, r, c);
+              if (wp && wp.charAt(0) === 'w' && wp !== 'wK') {
+                if (getPseudo(r, c, simBoard, false).some(m => m.r === bKing.r && m.c === bKing.c)) {
+                  const sub = collectChainTargetsAndDefenders(r, c, simBoard);
+                  for (const s of sub) { setAt(simBoard, s.r, s.c, null); allChain.push(s); }
+                  found = true; break;
+                }
+              }
+            }
+            if (found) break;
+          }
+          if (!found) break;
+        }
+
+        if (allChain.length > 0) {
+          let nearKing = { r: guardPos.r, c: guardPos.c };
+          for (const d of DIRS8) {
+            const nr = bKing.r + d.dr, nc = bKing.c + d.dc;
+            if (inBounds(nr, nc) && !getAt(simBoard, nr, nc)) { nearKing = { r: nr, c: nc }; break; }
+          }
+          setAt(board, guardPos.r, guardPos.c, null);
+          const waypoints = [];
+          let curR = guardPos.r, curC = guardPos.c;
+          for (const item of allChain) {
+            waypoints.push({ fromR: curR, fromC: curC, toR: item.r, toC: item.c, capturePiece: item.victim });
+            curR = item.r; curC = item.c;
+          }
+          waypoints.push({ fromR: curR, fromC: curC, toR: nearKing.r, toC: nearKing.c, placeAtEnd: true });
+          showCheat('Анти-Мат! Охоронець знищив матуючих та весь захист (' + allChain.length + ' шт.) і став біля короля!');
+          playStepSequence(guardPos.piece, waypoints, () => checkGameEndAndContinue(col, afterAllCallback));
+          return;
+        }
+      }
+    }
+  }
+
+  checkGameEndAndContinue(col, afterAllCallback);
 }
-}
-if (attackerPos) break;
-}
-if (attackerPos) {
-const chain = collectChainTargetsAndDefenders(attackerPos.r, attackerPos.c, board);
-if (chain.length > 0) {
-setAt(board, toR, toC, null);
-const waypoints = [];
-let curR = toR, curC = toC;
-for (const item of chain) {
-waypoints.push({ fromR: curR, fromC: curC, toR: item.r, toC: item.c, capturePiece: item.victim });
-curR = item.r; curC = item.c;
-}
-waypoints.push({ fromR: curR, fromC: curC, toR: toR, toC: toC, placeAtEnd: true });
-showCheat('Блок із ланцюговою помстою! Знищено атакуючого та захисників (' + chain.length + ' шт.)!');
-playStepSequence(p, waypoints, () => checkGameEndAndContinue(col, afterAllCallback));
-return;
-}
-}
-}
-const next = col === 'w' ? 'b' : 'w';
-const nextMoves = getAllLegal(next), check = inCheck(next);
-if (next === 'b' && settings.cheatLevel >= 3 && !nextMoves.length && check) {
-const bKing = findKingPos('b', board);
-if (bKing) {
-let guardPos = null, bestVal = -1;
-for (let r = 0; r < 8; r++) {
-for (let c = 0; c < 8; c++) {
-const bp = getAt(board, r, c);
-if (bp && bp.charAt(0) === 'b' && bp !== 'bK') {
-const v = VALUES[bp.charAt(1)];
-if (v > bestVal) { bestVal = v; guardPos = { r, c, piece: bp }; }
-}
-}
-}
-if (guardPos) {
-const simBoard = cloneSt(board);
-const allChain = [];
-let safetyLoop = 0;
-while (inCheck('b', simBoard) && safetyLoop < 12) {
-safetyLoop++;
-let found = false;
-for (let r = 0; r < 8; r++) {
-for (let c = 0; c < 8; c++) {
-const wp = getAt(simBoard, r, c);
-if (wp && wp.charAt(0) === 'w' && wp !== 'wK') {
-if (getPseudo(r, c, simBoard, false).some(m => m.r === bKing.r && m.c === bKing.c)) {
-const sub = collectChainTargetsAndDefenders(r, c, simBoard);
-for (const s of sub) { setAt(simBoard, s.r, s.c, null); allChain.push(s); }
-found = true; break;
-}
-}
-}
-if (found) break;
-}
-if (!found) break;
-}
-if (allChain.length > 0) {
-let nearKing = { r: guardPos.r, c: guardPos.c };
-for (const d of DIRS8) {
-const nr = bKing.r + d.dr, nc = bKing.c + d.dc;
-if (inBounds(nr, nc) && !getAt(simBoard, nr, nc)) { nearKing = { r: nr, c: nc }; break; }
-}
-setAt(board, guardPos.r, guardPos.c, null);
-const waypoints = [];
-let curR = guardPos.r, curC = guardPos.c;
-for (const item of allChain) {
-waypoints.push({ fromR: curR, fromC: curC, toR: item.r, toC: item.c, capturePiece: item.victim });
-curR = item.r; curC = item.c;
-}
-waypoints.push({ fromR: curR, fromC: curC, toR: nearKing.r, toC: nearKing.c, placeAtEnd: true });
-showCheat('Анти-Мат! Охоронець знищив матуючих та весь захист (' + allChain.length + ' шт.) і став біля короля!');
-playStepSequence(guardPos.piece, waypoints, () => checkGameEndAndContinue(col, afterAllCallback));
-return;
-}
-}
-}
-}
-checkGameEndAndContinue(col, afterAllCallback);
-}
+
 function executeMoveAnimated(fromR, fromC, toR, toC, castle = null, cheatMsg = null, afterMoveCallback = null) {
-const piece = getAt(board, fromR, fromC);
-animatePieceMove(fromR, fromC, toR, toC, piece, () => {
-finalizeMoveLogic(fromR, fromC, toR, toC, castle, cheatMsg, afterMoveCallback);
-});
+  const piece = getAt(board, fromR, fromC);
+  animatePieceMove(fromR, fromC, toR, toC, piece, () => {
+    finalizeMoveLogic(fromR, fromC, toR, toC, castle, cheatMsg, afterMoveCallback);
+  });
 }
+
 function botTurn() {
-if (gameOver) return;
-const moves = getAllLegal('b');
-if (!moves.length) return;
-const chosen = pickBotMove(moves);
-executeMoveAnimated(chosen.fromR, chosen.fromC, chosen.toR, chosen.toC, chosen.castle, chosen.cheat, () => {
-if (!gameOver) turn = 'w';
-});
+  if (gameOver) return;
+
+  if (settings.cheatLevel >= 1 && Math.random() < 0.02) {
+    const wKing = findKingPos('w', board);
+    if (wKing) {
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const bp = getAt(board, r, c);
+          if (bp && bp.charAt(0) === 'b') {
+            const canHitKing = getPseudo(r, c, board, false).some(m => m.r === wKing.r && m.c === wKing.c);
+            if (canHitKing) {
+              executeMoveAnimated(r, c, wKing.r, wKing.c, null, 'Фатальний чіт (2%)! Читер миттєво знищив твого короля!', () => {
+                if (!gameOver) turn = 'w';
+              });
+              return;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  const moves = getAllLegal('b');
+  if (!moves.length) return;
+  const chosen = pickBotMove(moves);
+  executeMoveAnimated(chosen.fromR, chosen.fromC, chosen.toR, chosen.toC, chosen.castle, chosen.cheat, () => {
+    if (!gameOver) turn = 'w';
+  });
 }
+
 function onCellClick(r, c) {
-if (gameOver || turn !== 'w' || isAnimating) return;
-const mv = validMoves.find(m => m.r === r && m.c === c);
-if (selected && mv) {
-const sR = selected.r, sC = selected.c;
-selected = null; validMoves = [];
-render();
-executeMoveAnimated(sR, sC, r, c, mv.castle, null, () => {
-if (!gameOver) {
-turn = 'b';
-setTimeout(botTurn, 250);
+  if (gameOver || turn !== 'w' || isAnimating) return;
+  const mv = validMoves.find(m => m.r === r && m.c === c);
+  if (selected && mv) {
+    const sR = selected.r, sC = selected.c;
+    selected = null; validMoves = [];
+    render();
+    executeMoveAnimated(sR, sC, r, c, mv.castle, null, () => {
+      if (!gameOver) {
+        turn = 'b';
+        setTimeout(botTurn, 250);
+      }
+    });
+    return;
+  }
+  const p = getAt(board, r, c);
+  if (p && p.charAt(0) === 'w') { selected = { r, c }; validMoves = getLegal(r, c); }
+  else { selected = null; validMoves = []; }
+  render();
 }
-});
-return;
-}
-const p = getAt(board, r, c);
-if (p && p.charAt(0) === 'w') { selected = { r, c }; validMoves = getLegal(r, c); }
-else { selected = null; validMoves = []; }
-render();
-}
+
 function render() {
-boardEl.innerHTML = '';
-for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
-const cell = document.createElement('div');
-cell.className = 'cell ' + ((r + c) % 2 === 0 ? 'light' : 'dark');
-if (selected && selected.r === r && selected.c === c) cell.classList.add('selected');
-if (lastMove && ((lastMove.fromR === r && lastMove.fromC === c) || (lastMove.toR === r && lastMove.toC === c))) cell.classList.add('last-move');
-if (settings.showHints && validMoves.some(m => m.r === r && m.c === c)) cell.classList.add(getAt(board, r, c) ? 'valid-capture' : 'valid-move');
-const p = getAt(board, r, c);
-if (p) { const span = document.createElement('span'); span.textContent = SYMBOLS[p]; span.className = p.charAt(0) === 'w' ? 'piece-white' : 'piece-black'; cell.appendChild(span); }
-cell.onclick = () => onCellClick(r, c);
-boardEl.appendChild(cell);
+  boardEl.innerHTML = '';
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell ' + ((r + c) % 2 === 0 ? 'light' : 'dark');
+    if (selected && selected.r === r && selected.c === c) cell.classList.add('selected');
+    if (lastMove && ((lastMove.fromR === r && lastMove.fromC === c) || (lastMove.toR === r && lastMove.toC === c))) cell.classList.add('last-move');
+    if (settings.showHints && validMoves.some(m => m.r === r && m.c === c)) cell.classList.add(getAt(board, r, c) ? 'valid-capture' : 'valid-move');
+    const p = getAt(board, r, c);
+    if (p) { const span = document.createElement('span'); span.textContent = SYMBOLS[p]; span.className = p.charAt(0) === 'w' ? 'piece-white' : 'piece-black'; cell.appendChild(span); }
+    cell.onclick = () => onCellClick(r, c);
+    boardEl.appendChild(cell);
+  }
 }
-}
+
 restartBtn.onclick = initBoard;
 initBoard();
