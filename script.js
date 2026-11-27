@@ -277,7 +277,6 @@ function playStepSequence(piece, waypoints, onDone) {
 
 
 function findSafeSquareNear(prefR, prefC, st = board) {
-
   let best = null, bestDist = 999;
   for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
     if (!getAt(st, r, c) && !isAttacked(r, c, 'b', st)) {
@@ -468,6 +467,27 @@ function animatePieceMove(fromR, fromC, toR, toC, piece, onComplete) {
 }
 
 function checkGameEndAndContinue(lastMoverCol, afterAllCallback) {
+  const wKing = findKingPos('w', board);
+  const bKing = findKingPos('b', board);
+
+  if (!wKing || !bKing) {
+    const loserCol = !wKing ? 'w' : 'b';
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const p = getAt(board, r, c);
+        if (p && p.charAt(0) === loserCol) {
+          spawnCaptureFade(r, c, p);
+          setAt(board, r, c, null);
+        }
+      }
+    }
+    updateMaterialUI();
+    gameOver = true;
+    statusEl.textContent = loserCol === 'b' ? 'Короля читера знищено! Ти переміг!' : 'Твого короля знищено! Читер переміг!';
+    render();
+    return;
+  }
+
   const next = lastMoverCol === 'w' ? 'b' : 'w';
   const nextMoves = getAllLegal(next);
   const check = inCheck(next);
@@ -511,7 +531,6 @@ function finalizeMoveLogic(fromR, fromC, toR, toC, castle = null, cheatMsg = nul
     spawnCaptureFade(toR, toC, capturedPiece);
   }
 
-  // РІВЕНЬ 3 (ПРАВИЛО №2): Ухилення + плавний маршрут знищення нападника і всіх захисників!
   if (col === 'w' && settings.cheatLevel >= 3 && capturedPiece && capturedPiece !== 'bK') {
     const safe = findSafeSquareNear(toR, toC, board);
     if (safe) {
@@ -529,16 +548,15 @@ function finalizeMoveLogic(fromR, fromC, toR, toC, castle = null, cheatMsg = nul
     }
   }
 
-  // РІВЕНЬ 3 (ПРАВИЛО №1): Блок від шаху + плавний маршрут знищення нападника і всіх захисників!
   if (col === 'b' && settings.cheatLevel >= 3 && wasBlackInCheck && p !== 'bK' && !capturedPiece) {
     let attackerPos = null;
     for (let r = 0; r < 8; r++) {
-      for (let c = 0; c < 8; c++) {
-        const wp = getAt(board, r, c);
-        if (wp && wp.charAt(0) === 'w' && wp !== 'wK') {
-          if (getPseudo(r, c, board, false).some(m => m.r === toR && m.c === toC)) { attackerPos = { r, c }; break; }
-        }
-      }
+for (let c = 0; c < 8; c++) {
+const wp = getAt(board, r, c);
+if (wp && wp.charAt(0) === 'w' && wp !== 'wK') {
+if (getPseudo(r, c, board, false).some(m => m.r === toR && m.c === toC)) { attackerPos = { r, c }; break; }
+}
+}
 if (attackerPos) break;
 }
 if (attackerPos) {
@@ -560,7 +578,6 @@ return;
 }
 const next = col === 'w' ? 'b' : 'w';
 const nextMoves = getAllLegal(next), check = inCheck(next);
-// РІВЕНЬ 3 (ПРАВИЛО №3): Анти-Мат охоронця з плавним польотом по всіх матуючих фігурах і захисниках!
 if (next === 'b' && settings.cheatLevel >= 3 && !nextMoves.length && check) {
 const bKing = findKingPos('b', board);
 if (bKing) {
