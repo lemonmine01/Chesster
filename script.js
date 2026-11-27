@@ -335,7 +335,7 @@ if (safe) {
 const wiped = chainDestroyTargetAndDefenders(toR, toC, board);
 setAt(board, safe.r, safe.c, capturedPiece);
 lastMove = { fromR: toR, fromC: toC, toR: safe.r, toC: safe.c };
-showCheat(Ухилення! Чорна фігура втекла та знищила нападника і захисників (${wiped} шт.)!);
+showCheat('Анти-Мат! Охоронець знищив матуючого та весь захист (' + wiped + ' шт.) і став біля короля!');
 }
 }
 // РІВЕНЬ 3 (ПРАВИЛО №1): Якщо чорні поставили блок від шаху -> фігура-блокувальник винищує нападника + захисників і повертається на місце блоку!
