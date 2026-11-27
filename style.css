@@ -223,13 +223,18 @@ h1 {
   margin-top: 6px;
 }
 
+.controls-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
 .settings-btn {
-  position: fixed;
-  right: 26px;
-  bottom: 26px;
-  width: 64px;
-  height: 64px;
-  font-size: 32px;
+  width: 52px;
+  height: 52px;
+  font-size: 26px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -238,9 +243,8 @@ h1 {
   border: 2px solid #52525b;
   border-radius: 50%;
   cursor: pointer;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
   transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
-  z-index: 10;
 }
 
 .settings-btn:hover {
@@ -248,6 +252,7 @@ h1 {
   border-color: #38bdf8;
   transform: rotate(45deg) scale(1.06);
 }
+
 
 .modal {
   position: fixed;
