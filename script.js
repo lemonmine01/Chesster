@@ -27,9 +27,11 @@ const soundEnabledCheck = document.getElementById('soundEnabledCheck');
 const soundVolumeRange = document.getElementById('soundVolumeRange');
 const volumeValLabel = document.getElementById('volumeValLabel');
 
-soundVolumeRange.oninput = () => {
-  volumeValLabel.textContent = soundVolumeRange.value + '%';
-};
+if (soundVolumeRange && volumeValLabel) {
+  soundVolumeRange.oninput = () => {
+    volumeValLabel.textContent = soundVolumeRange.value + '%';
+  };
+}
 
 const SOUNDS = {
   win: new Audio(encodeURI('Звук шахмового хода.mp3')),
@@ -95,7 +97,7 @@ function isBotTurn(col) {
 function getTurnLabel(col, check) {
   const sideName = col === 'w' ? 'Білі' : 'Чорні';
   const ctrlName = isBotTurn(col) ? 'Bot' : 'You';
-  const roleTag = hasCheaterRole(col) ? ' Читер' : '';
+  const roleTag = hasCheaterRole(col) ? ' 🎭Читер' : '';
   return 'Хід: ' + sideName + ' (' + ctrlName + roleTag + ')' + (check ? ' — ШАХ!' : '');
 }
 
@@ -113,7 +115,6 @@ applySettingsBtn.onclick = () => {
   if (trashTalkCheck) settings.trashTalk = trashTalkCheck.checked;
   if (soundEnabledCheck) settings.soundEnabled = soundEnabledCheck.checked;
   if (soundVolumeRange) settings.soundVolume = parseInt(soundVolumeRange.value, 10) / 100;
-
 
   document.body.className = settings.uiTheme;
   boardEl.className = 'board theme-' + settings.theme;
@@ -201,7 +202,7 @@ function getPseudo(r, c, st = board, allowCastle = true) {
   const lvl = getEffectiveCheatLevel(col);
   const isCheater1 = lvl >= 1;
   const isCheater2 = lvl >= 2;
-  const isCheater3 = lvl >= 3
+  const isCheater3 = lvl >= 3;
 
   const addUnique = (nr, nc, extra = {}) => {
     if (!moves.some(m => m.r === nr && m.c === nc)) moves.push({ r: nr, c: nc, ...extra });
@@ -252,7 +253,7 @@ function getPseudo(r, c, st = board, allowCastle = true) {
     if (allowCastle) {
       const row = col === 'w' ? 7 : 0;
       if (r === row && c === 4 && !inCheck(col, st)) {
-        if (castling[col+'K'] && castling[col+'Rh'] && !getAt(st,row,5) && !getAt(st,row,6) && !isAttacked(row,5,col,st) && !isAttacked(row,6,col,st)) addUnique(row, 6, { castle: 'short' });
+if (castling[col+'K'] && castling[col+'Rh'] && !getAt(st,row,5) && !getAt(st,row,6) && !isAttacked(row,5,col,st) && !isAttacked(row,6,col,st)) addUnique(row, 6, { castle: 'short' });
 if (castling[col+'K'] && castling[col+'Ra'] && !getAt(st,row,3) && !getAt(st,row,2) && !getAt(st,row,1) && !isAttacked(row,3,col,st) && !isAttacked(row,2,col,st)) addUnique(row, 2, { castle: 'long' });
 }
 }
@@ -279,49 +280,49 @@ if (isCheater1 && type === 'R') addKingSteps('Тура походила як к�
 if (isCheater1 && type === 'B') addKingSteps('Слон походив як король!');
 if (isCheater1 && type === 'Q') KNIGHT_JUMPS.forEach(j => pushOk(r + j.dr, c + j.dc, { cheat: 'Валькірія стрибнула як кінь!' }));
 }
-
-  // ФИЧА 3-ГО УРОВНЯ: Обмен местами со своей фигурой, если текущая фигура до неё «достаёт»
-  if (isCheater3 && allowCastle) {
-    const canReachAlly = (tr, tc) => {
-      const dr = tr - r, dc = tc - c;
-      if (type === 'N') return (Math.abs(dr) === 2 && Math.abs(dc) === 1) || (Math.abs(dr) === 1 && Math.abs(dc) === 2);
-      if (type === 'K') return Math.abs(dr) <= 1 && Math.abs(dc) <= 1;
-      if (type === 'P') {
-        const dir = col === 'w' ? -1 : 1;
-        return (dr === dir && Math.abs(dc) <= 1) || (dr === 0 && Math.abs(dc) === 1);
-      }
-      const isStraight = dr === 0 || dc === 0;
-      const isDiag = Math.abs(dr) === Math.abs(dc);
-      if (type === 'R' && !isStraight) return false;
-      if (type === 'B' && !isDiag) return false;
-      if (type === 'Q' && !isStraight && !isDiag && !((Math.abs(dr) === 2 && Math.abs(dc) === 1) || (Math.abs(dr) === 1 && Math.abs(dc) === 2))) return false;
-      if ((type === 'Q') && ((Math.abs(dr) === 2 && Math.abs(dc) === 1) || (Math.abs(dr) === 1 && Math.abs(dc) === 2))) return true;
-
-      const stepR = dr === 0 ? 0 : (dr > 0 ? 1 : -1);
-      const stepC = dc === 0 ? 0 : (dc > 0 ? 1 : -1);
-      let cr = r + stepR, cc = c + stepC, jumped = false;
-      while (cr !== tr || cc !== tc) {
-        if (getAt(st, cr, cc)) {
-          if (!jumped) jumped = true; // На 3-м уровне может достать даже через 1 фигуру
-          else return false;
-        }
-        cr += stepR;
-        cc += stepC;
-      }
-      return true;
-    };
-
-    for (let ar = 0; ar < 8; ar++) {
-      for (let ac = 0; ac < 8; ac++) {
-        if (ar === r && ac === c) continue;
-        const ally = getAt(st, ar, ac);
-        if (ally && ally.charAt(0) === col && canReachAlly(ar, ac)) {
-          addUnique(ar, ac, { swap: true, cheat: 'Обмін місцями! Фігури миттєво помінялися позиціями!' });
-        }
-      }
-    }
-  }
-
+// ФИЧА 3-ГО РІВНЯ: Обмін місцями із союзною фігурою, до якої поточна фігура «дістає»
+if (isCheater3 && allowCastle) {
+const canReachAlly = (tr, tc) => {
+const dr = tr - r, dc = tc - c;
+const isKnightJump = (Math.abs(dr) === 2 && Math.abs(dc) === 1) || (Math.abs(dr) === 1 && Math.abs(dc) === 2);
+const isOneStep = Math.abs(dr) <= 1 && Math.abs(dc) <= 1;
+if (type === 'N') return isKnightJump || isOneStep;
+if (type === 'K') return isOneStep;
+if (type === 'P') {
+const dir = col === 'w' ? -1 : 1;
+return (dr === dir && Math.abs(dc) <= 1) || (dr === 0 && Math.abs(dc) === 1);
+}
+const isStraight = dr === 0 || dc === 0;
+const isDiag = Math.abs(dr) === Math.abs(dc);
+if (type === 'R' && !isStraight) return isOneStep;
+if (type === 'B' && !isDiag) return isOneStep;
+if (type === 'Q') {
+if (isKnightJump) return true;
+if (!isStraight && !isDiag) return false;
+}
+const stepR = dr === 0 ? 0 : (dr > 0 ? 1 : -1);
+const stepC = dc === 0 ? 0 : (dc > 0 ? 1 : -1);
+let cr = r + stepR, cc = c + stepC, jumped = false;
+while (cr !== tr || cc !== tc) {
+if (getAt(st, cr, cc)) {
+if (!jumped) jumped = true;
+else return false;
+}
+cr += stepR;
+cc += stepC;
+}
+return true;
+};
+for (let ar = 0; ar < 8; ar++) {
+for (let ac = 0; ac < 8; ac++) {
+if (ar === r && ac === c) continue;
+const ally = getAt(st, ar, ac);
+if (ally && ally.charAt(0) === col && canReachAlly(ar, ac)) {
+addUnique(ar, ac, { swap: true, cheat: 'Обмін місцями! Фігури миттєво помінялися позиціями!' });
+}
+}
+}
+}
 return moves;
 }
 function isAttacked(tr, tc, defCol, st = board) {
@@ -403,14 +404,12 @@ return null;
 function applySimMove(st, m) {
 const sim = cloneSt(st);
 const p = getAt(sim, m.fromR, m.fromC);
-
 if (m.swap) {
-  const ally = getAt(sim, m.toR, m.toC);
-  setAt(sim, m.toR, m.toC, p);
-  setAt(sim, m.fromR, m.fromC, ally);
-  return sim;
+const ally = getAt(sim, m.toR, m.toC);
+setAt(sim, m.toR, m.toC, p);
+setAt(sim, m.fromR, m.fromC, ally);
+return sim;
 }
-
 setAt(sim, m.toR, m.toC, p);
 setAt(sim, m.fromR, m.fromC, null);
 if (m.castle === 'short') { setAt(sim, m.fromR, 5, getAt(sim, m.fromR, 7)); setAt(sim, m.fromR, 7, null); }
@@ -425,8 +424,8 @@ if (!p) return [];
 const col = p.charAt(0);
 const enemyKing = (col === 'w' ? 'b' : 'w') + 'K';
 return getPseudo(r, c, st, true).filter(m => {
-if (getAt(st, m.r, m.c) === enemyKing) return false;
-const sim = applySimMove(st, { fromR: r, fromC: c, toR: m.r, toC: m.c, castle: m.castle });
+if (!m.swap && getAt(st, m.r, m.c) === enemyKing) return false;
+const sim = applySimMove(st, { fromR: r, fromC: c, toR: m.r, toC: m.c, castle: m.castle, swap: m.swap });
 return !inCheck(col, sim);
 });
 }
@@ -434,7 +433,7 @@ function getAllLegal(col, st = board) {
 const all = [];
 for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
 if (getAt(st, r, c) && getAt(st, r, c).charAt(0) === col) {
-getLegal(r, c, st).forEach(m => all.push({ fromR: r, fromC: c, toR: m.r, toC: m.c, castle: m.castle, cheat: m.cheat, target: getAt(st, m.r, m.c) }));
+getLegal(r, c, st).forEach(m => all.push({ fromR: r, fromC: c, toR: m.r, toC: m.c, castle: m.castle, swap: m.swap, cheat: m.cheat, target: m.swap ? null : getAt(st, m.r, m.c) }));
 }
 }
 return all;
@@ -641,23 +640,21 @@ if (isBotTurn(next) && gameStarted && !gameOver) {
 botTimer = setTimeout(() => runBotTurn(next), 320);
 }
 }
-function finalizeMoveLogic(fromR, fromC, toR, toC, castle = null, cheatMsg = null) {
+function finalizeMoveLogic(fromR, fromC, toR, toC, castle = null, cheatMsg = null, isSwap = false) {
 const p = getAt(board, fromR, fromC);
 const moverCol = p.charAt(0);
 const oppCol = moverCol === 'w' ? 'b' : 'w';
-const capturedPiece = getAt(board, toR, toC);
-
 if (isSwap) {
-  const allyPiece = getAt(board, toR, toC);
-  setAt(board, toR, toC, p);
-  setAt(board, fromR, fromC, allyPiece);
-  lastMove = { fromR, fromC, toR, toC };
-  if (cheatMsg) showCheat(cheatMsg);
-  if (settings.moveAnim !== 'smooth') playSound('move');
-  checkGameEndAndContinue(moverCol);
-  return;
+const allyPiece = getAt(board, toR, toC);
+setAt(board, toR, toC, p);
+setAt(board, fromR, fromC, allyPiece);
+lastMove = { fromR, fromC, toR, toC };
+if (cheatMsg) showCheat(cheatMsg);
+if (settings.moveAnim !== 'smooth') playSound('move');
+checkGameEndAndContinue(moverCol);
+return;
 }
-
+const capturedPiece = getAt(board, toR, toC);
 setAt(board, toR, toC, p);
 setAt(board, fromR, fromC, null);
 lastMove = { fromR, fromC, toR, toC };
@@ -756,10 +753,10 @@ return;
 }
 checkGameEndAndContinue(moverCol);
 }
-function executeMoveAnimated(fromR, fromC, toR, toC, castle = null, cheatMsg = null) {
+function executeMoveAnimated(fromR, fromC, toR, toC, castle = null, cheatMsg = null, isSwap = false) {
 const piece = getAt(board, fromR, fromC);
 animatePieceMove(fromR, fromC, toR, toC, piece, () => {
-finalizeMoveLogic(fromR, fromC, toR, toC, castle, cheatMsg);
+finalizeMoveLogic(fromR, fromC, toR, toC, castle, cheatMsg, isSwap);
 });
 }
 function runBotTurn(botCol) {
@@ -774,7 +771,7 @@ const bp = getAt(board, r, c);
 if (bp && bp.charAt(0) === botCol) {
 const canHitKing = getPseudo(r, c, board, false).some(m => m.r === enemyKing.r && m.c === enemyKing.c);
 if (canHitKing) {
-executeMoveAnimated(r, c, enemyKing.r, enemyKing.c, null, 'Фатальний чіт (2%)! Читер миттєво знищив ворожого короля!');
+executeMoveAnimated(r, c, enemyKing.r, enemyKing.c, null, 'Фатальний чіт (2%)! Читер миттєво знищив ворожого короля!', false);
 return;
 }
 }
@@ -785,7 +782,7 @@ return;
 const moves = getAllLegal(botCol);
 if (!moves.length) return;
 const chosen = pickBotMove(moves, botCol);
-executeMoveAnimated(chosen.fromR, chosen.fromC, chosen.toR, chosen.toC, chosen.castle, chosen.cheat);
+executeMoveAnimated(chosen.fromR, chosen.fromC, chosen.toR, chosen.toC, chosen.castle, chosen.cheat, chosen.swap);
 }
 function onCellClick(r, c) {
 if (!gameStarted || gameOver || isAnimating || isBotTurn(turn)) return;
@@ -794,7 +791,7 @@ if (selected && mv) {
 const sR = selected.r, sC = selected.c;
 selected = null; validMoves = [];
 render();
-executeMoveAnimated(sR, sC, r, c, mv.castle, mv.cheat);
+executeMoveAnimated(sR, sC, r, c, mv.castle, mv.cheat, mv.swap);
 return;
 }
 const p = getAt(board, r, c);
@@ -814,7 +811,10 @@ const cell = document.createElement('div');
 cell.className = 'cell ' + ((r + c) % 2 === 0 ? 'light' : 'dark');
 if (selected && selected.r === r && selected.c === c) cell.classList.add('selected');
 if (lastMove && ((lastMove.fromR === r && lastMove.fromC === c) || (lastMove.toR === r && lastMove.toC === c))) cell.classList.add('last-move');
-if (settings.showHints && validMoves.some(m => m.r === r && m.c === c)) cell.classList.add(getAt(board, r, c) ? 'valid-capture' : 'valid-move');
+if (settings.showHints && validMoves.some(m => m.r === r && m.c === c)) {
+const targetP = getAt(board, r, c);
+cell.classList.add(targetP && targetP.charAt(0) !== turn ? 'valid-capture' : 'valid-move');
+}
 const p = getAt(board, r, c);
 if (p) { const span = document.createElement('span'); span.textContent = SYMBOLS[p]; span.className = p.charAt(0) === 'w' ? 'piece-white' : 'piece-black'; cell.appendChild(span); }
 cell.onclick = () => onCellClick(r, c);
