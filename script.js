@@ -62,8 +62,9 @@ let settings = {
   captureAnim: 'fade',
   showHints: true,
   showMaterial: false,
-  trashTalk: false
-
+  trashTalk: false,
+  soundEnabled: true,
+  soundVolume: 0.8
 };
 
 let matchConfig = {
@@ -112,7 +113,6 @@ applySettingsBtn.onclick = () => {
   settings.trashTalk = trashTalkCheck.checked;
   settings.soundEnabled = soundEnabledCheck.checked;
   settings.soundVolume = parseInt(soundVolumeRange.value, 10) / 100;
-
 
   document.body.className = settings.uiTheme;
   boardEl.className = 'board theme-' + settings.theme;
@@ -251,28 +251,28 @@ function getPseudo(r, c, st = board, allowCastle = true) {
       const row = col === 'w' ? 7 : 0;
       if (r === row && c === 4 && !inCheck(col, st)) {
         if (castling[col+'K'] && castling[col+'Rh'] && !getAt(st,row,5) && !getAt(st,row,6) && !isAttacked(row,5,col,st) && !isAttacked(row,6,col,st)) addUnique(row, 6, { castle: 'short' });
-        if (castling[col+'K'] && castling[col+'Ra'] && !getAt(st,row,3) && !getAt(st,row,2) && !getAt(st,row,1) && !isAttacked(row,3,col,st) && !isAttacked(row,2,col,st)) addUnique(row, 2, { castle: 'long' });
-      }
-    }
-  } else {
-    const dirs = [];
-    if (type === 'R' || type === 'Q') dirs.push({dr:-1,dc:0},{dr:1,dc:0},{dr:0,dc:-1},{dr:0,dc:1});
-    if (type === 'B' || type === 'Q') dirs.push({dr:-1,dc:-1},{dr:-1,dc:1},{dr:1,dc:-1},{dr:1,dc:1});
-    for (const d of dirs) {
-      let nr = r + d.dr, nc = c + d.dc, jumped = false;
-      while (inBounds(nr, nc)) {
-        const t = getAt(st, nr, nc);
-        if (!t) {
-          addUnique(nr, nc, { cheat: jumped ? 'Фігура перестрибнула перешкоду!' : null });
-        } else {
-          if (t.charAt(0) !== col) addUnique(nr, nc, { cheat: jumped ? 'Атака зі стрибком через фігуру!' : null });
-          if (isCheater2 && !jumped) jumped = true;
-          else break;
-        }
-        nr += d.dr;
-        nc += d.dc;
-      }
-    }
+if (castling[col+'K'] && castling[col+'Ra'] && !getAt(st,row,3) && !getAt(st,row,2) && !getAt(st,row,1) && !isAttacked(row,3,col,st) && !isAttacked(row,2,col,st)) addUnique(row, 2, { castle: 'long' });
+}
+}
+} else {
+const dirs = [];
+if (type === 'R' || type === 'Q') dirs.push({dr:-1,dc:0},{dr:1,dc:0},{dr:0,dc:-1},{dr:0,dc:1});
+if (type === 'B' || type === 'Q') dirs.push({dr:-1,dc:-1},{dr:-1,dc:1},{dr:1,dc:-1},{dr:1,dc:1});
+for (const d of dirs) {
+let nr = r + d.dr, nc = c + d.dc, jumped = false;
+while (inBounds(nr, nc)) {
+const t = getAt(st, nr, nc);
+if (!t) {
+addUnique(nr, nc, { cheat: jumped ? 'Фігура перестрибнула перешкоду!' : null });
+} else {
+if (t.charAt(0) !== col) addUnique(nr, nc, { cheat: jumped ? 'Атака зі стрибком через фігуру!' : null });
+if (isCheater2 && !jumped) jumped = true;
+else break;
+}
+nr += d.dr;
+nc += d.dc;
+}
+}
 if (isCheater1 && type === 'R') addKingSteps('Тура походила як король!');
 if (isCheater1 && type === 'B') addKingSteps('Слон походив як король!');
 if (isCheater1 && type === 'Q') KNIGHT_JUMPS.forEach(j => pushOk(r + j.dr, c + j.dc, { cheat: 'Валькірія стрибнула як кінь!' }));
@@ -327,6 +327,7 @@ const step = waypoints.shift();
 render();
 animatePieceMove(step.fromR, step.fromC, step.toR, step.toC, piece, () => {
 if (step.capturePiece) {
+playSound('capture');
 setAt(board, step.toR, step.toC, null);
 render();
 spawnCaptureFade(step.toR, step.toC, step.capturePiece);
@@ -460,10 +461,9 @@ if (settings.moveAnim === 'instant' || !piece) {
 onComplete();
 return;
 }
-
-  if (settings.moveAnim === 'smooth') {
-    playSound('smooth');
-  }
+if (settings.moveAnim === 'smooth') {
+playSound('smooth');
+}
 isAnimating = true;
 if (settings.moveAnim === 'smooth') {
 const ghost = document.createElement('div');
@@ -570,15 +570,15 @@ const nextMoves = getAllLegal(next);
 const check = inCheck(next);
 updateMaterialUI();
 if (!nextMoves.length) {
+if (!check) {
+playSound('draw');
+} else {
+const humanWon = (lastMoverCol === 'w' && matchConfig.whiteType === 'you') || (lastMoverCol === 'b' && matchConfig.blackType === 'you');
+const humanLost = (lastMoverCol === 'b' && matchConfig.whiteType === 'you') || (lastMoverCol === 'w' && matchConfig.blackType === 'you');
+playSound(humanLost && !humanWon ? 'lose' : 'win');
+}
 const winMsg = lastMoverCol === 'w' ? 'Шах і мат! Білі перемогли!' : 'Шах і мат! Чорні перемогли!';
 finishGameToMenuButton(check ? winMsg : 'Пат! Нічия!');
-if (!check) {
-  playSound('draw');
-} else {
-  const humanWon = (lastMoverCol === 'w' && matchConfig.whiteType === 'you') || (lastMoverCol === 'b' && matchConfig.blackType === 'you');
-  const humanLost = (lastMoverCol === 'b' && matchConfig.whiteType === 'you') || (lastMoverCol === 'w' && matchConfig.blackType === 'you');
-  playSound(humanLost && !humanWon ? 'lose' : 'win');
-}
 return;
 }
 turn = next;
@@ -607,17 +607,13 @@ if (fromR === 0 && fromC === 0) castling.bRa = false;
 if (fromR === 0 && fromC === 7) castling.bRh = false;
 if (p === 'wP' && toR === 0) setAt(board, toR, toC, 'wQ');
 if (p === 'bP' && toR === 7) setAt(board, toR, toC, 'bQ');
-  if (capturedPiece) {
-    playSound('capture');
-    render();
-    spawnCaptureFade(toR, toC, capturedPiece);
-  } else if (settings.moveAnim !== 'smooth') {
-    playSound('move');
-  }
+if (capturedPiece) {
+playSound('capture');
 render();
 spawnCaptureFade(toR, toC, capturedPiece);
+} else if (settings.moveAnim !== 'smooth') {
+playSound('move');
 }
-// СИМЕТРИЧНИЙ ЧІТ 3-ГО РІВНЯ (Ухилення + Ланцюгова контратака), якщо збита фігура належить стороні з роллю Читера
 if (capturedPiece && capturedPiece !== oppCol + 'K' && getEffectiveCheatLevel(oppCol) >= 3) {
 const safe = findSafeSquareNear(toR, toC, oppCol, board);
 if (safe) {
@@ -637,7 +633,6 @@ return;
 const next = oppCol;
 const nextMoves = getAllLegal(next);
 const check = inCheck(next);
-// СИМЕТРИЧНИЙ ЧІТ 3-ГО РІВНЯ (Анти-Мат охорони), якщо сторона, якій ставлять мат, має роль Читера
 if (getEffectiveCheatLevel(next) >= 3 && !nextMoves.length && check) {
 const defKing = findKingPos(next, board);
 if (defKing) {
@@ -704,7 +699,6 @@ finalizeMoveLogic(fromR, fromC, toR, toC, castle, cheatMsg);
 }
 function runBotTurn(botCol) {
 if (gameOver || !gameStarted || turn !== botCol) return;
-// Шанс 2% для сторони з роллю Читера миттєво збити ворожого короля!
 if (hasCheaterRole(botCol) && Math.random() < 0.02) {
 const enemyCol = botCol === 'w' ? 'b' : 'w';
 const enemyKing = findKingPos(enemyCol, board);
