@@ -1,3 +1,170 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chesster — Шахи з роллю Читера</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://w3.org' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♛</text></svg>">
+  <link rel="stylesheet" href="style.css?v=31">
+</head>
+<body class="ui-dark-gray">
+  <div class="game-container">
+    <h1>Chesster</h1>
+    <div id="status" class="status">Налаштуй матч і тисни «Почати партію»</div>
+    <div id="cheatBanner" class="cheat-banner hidden"></div>
+    
+    <div class="board-wrapper">
+      <div id="materialBar" class="material-bar hidden">Матеріал: 0</div>
+      <div class="board-stage">
+        <div id="board" class="board theme-DarkWood"></div>
+        
+        <div id="boardOverlay" class="board-overlay">
+          <div class="lobby-card">
+            <div class="lobby-title">⚔️ Налаштування партії</div>
+            
+            <div class="lobby-row">
+              <label for="whitePlayerSelect">Білі (Знизу):</label>
+              <select id="whitePlayerSelect">
+                <option value="you" selected>You (Гравець)</option>
+                <option value="bot">Bot (ШІ)</option>
+              </select>
+            </div>
+
+            <div class="lobby-vs">VS</div>
+
+            <div class="lobby-row">
+              <label for="blackPlayerSelect">Чорні (Зверху):</label>
+              <select id="blackPlayerSelect">
+                <option value="bot" selected>Bot (ШІ)</option>
+                <option value="you">You (Гравець)</option>
+              </select>
+            </div>
+
+            <div class="lobby-divider"></div>
+
+            <div class="lobby-row">
+              <label for="cheaterRoleSelect">🎭 Роль Читера:</label>
+              <select id="cheaterRoleSelect">
+                <option value="black" selected>У чорних</option>
+                <option value="white">У білих</option>
+                <option value="both">У кожного (Хаос!)</option>
+                <option value="none">Ні у кого (Чесні шахи)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button id="menuBtn" class="btn menu-btn hidden">Перейти в меню</button>
+      <button id="restartBtn" class="btn">Почати партію</button>
+      <button id="settingsBtn" class="settings-btn" title="Налаштування">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <div id="settingsModal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>⚙️ Налаштування гри</h2>
+        <button id="closeSettingsBtn" class="close-btn">✕</button>
+      </div>
+
+      <div class="setting-group">
+        <label for="uiThemeSelect">Стиль меню та фону:</label>
+        <select id="uiThemeSelect">
+          <option value="ui-dark-gray" selected>Темно-сірий (Стандарт)</option>
+          <option value="ui-dark-lime">Темно-салатовий (Лісовий)</option>
+          <option value="ui-dark-ocean">Глибокий океан (Темно-синій)</option>
+          <option value="ui-dark-crimson">Багряна тінь (Темно-червоний)</option>
+          <option value="ui-light-paper">Світлий пергамент (Денний)</option>
+          <option value="ui-light-mint">Світло-м'ятний (Денний)</option>
+        </select>
+      </div>
+
+      <div class="setting-group">
+        <label for="difficultySelect">Складність гри (Розум бота):</label>
+        <select id="difficultySelect">
+          <option value="easy">Новачок (Простий)</option>
+          <option value="medium" selected>Любитель (Тактичний)</option>
+          <option value="hard">Профі (Глибокий розрахунок)</option>
+          <option value="grandmaster">Гроссмейстер (Непереможний розум)</option>
+        </select>
+      </div>
+
+      <div class="setting-group">
+        <label for="cheatLevelSelect">Рівень ролі Читера:</label>
+        <select id="cheatLevelSelect">
+          <option value="1" selected>1 — Хитрий (Суперходи фігур)</option>
+          <option value="2">2 — Нахабний (Пробивання та ривок пішака)</option>
+          <option value="3">3 — Неможливий (Ухилення + Анти-Мат + Обмін)</option>
+        </select>
+      </div>
+
+      <div class="setting-group">
+        <label for="themeSelect">Тема дошки:</label>
+        <select id="themeSelect">
+          <option value="DarkWood" selected>Темний дуб</option>
+          <option value="wood">Класична (Дерево)</option>
+          <option value="acacia">Акація</option>
+          <option value="birch">Береза</option>
+          <option value="slate">Сучасна (Сіро-біла)</option>
+          <option value="bw">Чорно-біла (Монохром)</option>
+          <option value="green">Турнірна (Зелена)</option>
+          <option value="ocean">Океан (Синьо-блакитна)</option>
+          <option value="crimson">Лігво читера (Червоно-темна)</option>
+          <option value="purple">Аметист (Фіолетова)</option>
+          <option value="cyber">Кіберпанк (Неонова)</option>
+          <option value="fire">Ваніль та апельсин</option>
+          <option value="grass">Трава</option>
+        </select>
+      </div>
+
+      <div class="setting-group">
+        <label for="moveAnimSelect">Рух фігур:</label>
+        <select id="moveAnimSelect">
+          <option value="smooth" selected>Плавно</option>
+          <option value="instant">Різко</option>
+          <option value="step">По клітинці</option>
+        </select>
+      </div>
+
+      <div class="setting-group">
+        <label for="captureAnimSelect">Взяття фігури:</label>
+        <select id="captureAnimSelect">
+          <option value="fade" selected>Плавно зникає</option>
+          <option value="instant">Різко зникає</option>
+        </select>
+      </div>
+
+      <div class="setting-group checkbox-group">
+        <input type="checkbox" id="showHintsCheck" checked>
+        <label for="showHintsCheck">Показувати підказки ходів</label>
+      </div>
+
+      <div class="setting-group checkbox-group">
+        <input type="checkbox" id="showMaterialCheck">
+        <label for="showMaterialCheck">Показувати матеріал</label>
+      </div>
+
+      <div class="setting-group checkbox-group">
+        <input type="checkbox" id="trashTalkCheck">
+        <label for="trashTalkCheck">Повідомлення читера під час злому</label>
+      </div>
+
+      <div class="setting-group checkbox-group">
+        <input type="checkbox" id="soundEnabledCheck" checked>
+        <label for="soundEnabledCheck">Звукові ефекти</label>
+      </div>
+
+      <div class="setting-group">
+        <label for="soundVolumeRange">Гучність звуків: <span id="volumeValLabel">80%</span></label>
+        <input type="range" id="soundVolumeRange" min="0" max="100" value="80">
+      </div>
+
       <button id="applySettingsBtn" class="btn full-width">Застосувати та закрити</button>
 
       <div class="stats-box">
@@ -13,3 +180,5 @@
   </div>
 
   <script src="script.js?v=31"></script>
+</body>
+</html>
