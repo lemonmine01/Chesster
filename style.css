@@ -122,8 +122,8 @@ h1 {
 .board.theme-cyber .cell.light   { background: #1e293b; }
 .board.theme-cyber .cell.dark    { background: #09090b; }
 
-.board.theme-DarkWood .cell.light   { background: #d19f6f; }
-.board.theme-DarkWood .cell.dark    { background: #1f1100; }
+.board.theme-DarkWood .cell.light   { background: #f0bb8a; }
+.board.theme-DarkWood .cell.dark    { background: #432c10; }
 
 
 .cell.selected {
