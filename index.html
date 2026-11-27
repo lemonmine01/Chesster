@@ -4,14 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chesster — Шахи проти читера</title>
-  <link rel="stylesheet" href="style.css?v=3">
+  <link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
   <div class="game-container">
     <h1>Chesster</h1>
     <div id="status" class="status">Твій хід (Білі)</div>
     <div id="cheatBanner" class="cheat-banner hidden"></div>
-    <div id="board" class="board theme-slate"></div>
+    
+    <div class="board-wrapper">
+      <div id="materialBar" class="material-bar hidden">Матеріал: 0</div>
+      <div id="board" class="board theme-slate"></div>
+    </div>
+
     <button id="restartBtn" class="btn">Нова гра</button>
   </div>
 
@@ -38,8 +43,8 @@
         <select id="cheatLevelSelect">
           <option value="0">0 — Чесна гра (Без чітів)</option>
           <option value="1" selected>1 — Хитрий (Суперходи фігур)</option>
-          <option value="2">2 — Нахабний (Подвійні ходи та еволюція)</option>
-          <option value="3">3 — Неможливий (Повний хаос)</option>
+          <option value="2">2 — Нахабний (Пробивання та ривок пішака)</option>
+          <option value="3">3 — Неможливий (Абсолютний злом)</option>
         </select>
       </div>
 
@@ -57,13 +62,35 @@
         </select>
       </div>
 
+      <div class="setting-group">
+        <label for="moveAnimSelect">Рух фігур:</label>
+        <select id="moveAnimSelect">
+          <option value="smooth" selected>Плавно</option>
+          <option value="instant">Різко</option>
+          <option value="step">По клітинці</option>
+        </select>
+      </div>
+
+      <div class="setting-group">
+        <label for="captureAnimSelect">Взяття фігури:</label>
+        <select id="captureAnimSelect">
+          <option value="fade" selected>Плавно зникає</option>
+          <option value="instant">Різко зникає</option>
+        </select>
+      </div>
+
       <div class="setting-group checkbox-group">
         <input type="checkbox" id="showHintsCheck" checked>
         <label for="showHintsCheck">Показувати підказки ходів</label>
       </div>
 
       <div class="setting-group checkbox-group">
-        <input type="checkbox" id="trashTalkCheck" checked>
+        <input type="checkbox" id="showMaterialCheck">
+        <label for="showMaterialCheck">Показувати матеріал</label>
+      </div>
+
+      <div class="setting-group checkbox-group">
+        <input type="checkbox" id="trashTalkCheck">
         <label for="trashTalkCheck">Повідомлення читера під час злому</label>
       </div>
 
@@ -71,6 +98,6 @@
     </div>
   </div>
 
-  <script src="script.js"></script>
+  <script src="script.js?v=4"></script>
 </body>
 </html>

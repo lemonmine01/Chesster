@@ -1,6 +1,7 @@
 const boardEl = document.getElementById('board');
 const statusEl = document.getElementById('status');
 const cheatBannerEl = document.getElementById('cheatBanner');
+const materialBarEl = document.getElementById('materialBar');
 const restartBtn = document.getElementById('restartBtn');
 
 const settingsBtn = document.getElementById('settingsBtn');
@@ -10,14 +11,28 @@ const applySettingsBtn = document.getElementById('applySettingsBtn');
 const difficultySelect = document.getElementById('difficultySelect');
 const cheatLevelSelect = document.getElementById('cheatLevelSelect');
 const themeSelect = document.getElementById('themeSelect');
+const moveAnimSelect = document.getElementById('moveAnimSelect');
+const captureAnimSelect = document.getElementById('captureAnimSelect');
 const showHintsCheck = document.getElementById('showHintsCheck');
+const showMaterialCheck = document.getElementById('showMaterialCheck');
 const trashTalkCheck = document.getElementById('trashTalkCheck');
 
 const SYMBOLS = { wP:'♟', wR:'♜', wN:'♞', wB:'♝', wQ:'♛', wK:'♚', bP:'♟', bR:'♜', bN:'♞', bB:'♝', bQ:'♛', bK:'♚' };
 const VALUES = { P: 100, N: 320, B: 330, R: 500, Q: 900, K: 20000 };
+const MAT_POINTS = { P: 1, N: 3, B: 3, R: 5, Q: 9, K: 0 };
 
-let settings = { difficulty: 'medium', cheatLevel: 1, theme: 'slate', showHints: true, trashTalk: true };
-let board = [], turn = 'w', selected = null, validMoves = [], gameOver = false, lastMove = null;
+let settings = {
+  difficulty: 'medium',
+  cheatLevel: 1,
+  theme: 'slate',
+  moveAnim: 'smooth',
+  captureAnim: 'fade',
+  showHints: true,
+  showMaterial: false,
+  trashTalk: false
+};
+
+let board = [], turn = 'w', selected = null, validMoves = [], gameOver = false, lastMove = null, isAnimating = false;
 let castling = { wK: true, wRa: true, wRh: true, bK: true, bRa: true, bRh: true };
 
 settingsBtn.onclick = () => settingsModal.classList.remove('hidden');
@@ -26,10 +41,15 @@ applySettingsBtn.onclick = () => {
   settings.difficulty = difficultySelect.value;
   settings.cheatLevel = parseInt(cheatLevelSelect.value, 10);
   settings.theme = themeSelect.value;
+  settings.moveAnim = moveAnimSelect.value;
+  settings.captureAnim = captureAnimSelect.value;
   settings.showHints = showHintsCheck.checked;
+  settings.showMaterial = showMaterialCheck.checked;
   settings.trashTalk = trashTalkCheck.checked;
+
   boardEl.className = 'board theme-' + settings.theme;
   settingsModal.classList.add('hidden');
+  updateMaterialUI();
   render();
 };
 
@@ -39,6 +59,34 @@ function showCheat(msg) {
   cheatBannerEl.classList.remove('hidden');
   clearTimeout(window.cheatTimer);
   window.cheatTimer = setTimeout(() => cheatBannerEl.classList.add('hidden'), 4000);
+}
+
+function updateMaterialUI() {
+  if (!settings.showMaterial) {
+    materialBarEl.classList.add('hidden');
+    return;
+  }
+  materialBarEl.classList.remove('hidden');
+  let wScore = 0, bScore = 0;
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const p = getAt(board, r, c);
+      if (!p) continue;
+      if (p.charAt(0) === 'w') wScore += MAT_POINTS[p.charAt(1)];
+      else bScore += MAT_POINTS[p.charAt(1)];
+    }
+  }
+  const diff = wScore - bScore;
+  materialBarEl.className = 'material-bar';
+  if (diff > 0) {
+    materialBarEl.textContent = 'Матеріал: +' + diff;
+    materialBarEl.classList.add('mat-plus');
+  } else if (diff < 0) {
+    materialBarEl.textContent = 'Матеріал: ' + diff;
+    materialBarEl.classList.add('mat-minus');
+  } else {
+    materialBarEl.textContent = 'Матеріал: 0';
+  }
 }
 
 function initBoard() {
@@ -52,11 +100,12 @@ function initBoard() {
     ['wP','wP','wP','wP','wP','wP','wP','wP'],
     ['wR','wN','wB','wQ','wK','wB','wN','wR']
   ];
-  turn = 'w'; selected = null; validMoves = []; gameOver = false; lastMove = null;
+  turn = 'w'; selected = null; validMoves = []; gameOver = false; lastMove = null; isAnimating = false;
   castling = { wK: true, wRa: true, wRh: true, bK: true, bRa: true, bRh: true };
   cheatBannerEl.classList.add('hidden');
   statusEl.textContent = 'Твій хід (Білі)';
   boardEl.className = 'board theme-' + settings.theme;
+  updateMaterialUI();
   render();
 }
 
@@ -174,29 +223,24 @@ function inCheck(col, st = board) {
   return false;
 }
 
-// Ланцюгове знищення цілі та всіх її білих захисників (для 3-го рівня читера)
 function chainDestroyTargetAndDefenders(targetR, targetC, st = board) {
   const queue = [{ r: targetR, c: targetC }];
   let destroyedCount = 0;
-
   while (queue.length > 0) {
     const curr = queue.shift();
     const victim = getAt(st, curr.r, curr.c);
     if (!victim || victim.charAt(0) !== 'w' || victim === 'wK') continue;
-
-    // Знаходимо всіх білих захисників цієї клітинки перед її знищенням
     const defenders = [];
     for (let r = 0; r < 8; r++) {
       for (let c = 0; c < 8; c++) {
         if (r === curr.r && c === curr.c) continue;
         const p = getAt(st, r, c);
         if (p && p.charAt(0) === 'w' && p !== 'wK') {
-          const canDefend = getPseudo(r, c, st, false).some(m => m.r === curr.r && m.c === curr.c);
-          if (canDefend) defenders.push({ r, c });
+          if (getPseudo(r, c, st, false).some(m => m.r === curr.r && m.c === curr.c)) defenders.push({ r, c });
         }
       }
     }
-
+    spawnCaptureFade(curr.r, curr.c, victim);
     setAt(st, curr.r, curr.c, null);
     destroyedCount++;
     for (const d of defenders) queue.push(d);
@@ -205,40 +249,35 @@ function chainDestroyTargetAndDefenders(targetR, targetC, st = board) {
 }
 
 function findSafeSquareNear(prefR, prefC, st = board) {
-  let best = null, bestDist = 999;
-  for (let r = 0; r < 8; r++) {
-    for (let c = 0; c < 8; c++) {
-      if (!getAt(st, r, c) && !isAttacked(r, c, 'b', st)) {
-        const dist = Math.abs(r - prefR) + Math.abs(c - prefC) + (r * 0.2);
-        if (dist < bestDist) { bestDist = dist; best = { r, c }; }
-      }
-    }
-  }
-  return best;
+let best = null, bestDist = 999;
+for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+if (!getAt(st, r, c) && !isAttacked(r, c, 'b', st)) {
+const dist = Math.abs(r - prefR) + Math.abs(c - prefC) + (r * 0.2);
+if (dist < bestDist) { bestDist = dist; best = { r, c }; }
 }
-
+}
+return best;
+}
 function findKingPos(col, st = board) {
-  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) if (getAt(st, r, c) === col + 'K') return { r, c };
-  return null;
+for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) if (getAt(st, r, c) === col + 'K') return { r, c };
+return null;
 }
-
 function applySimMove(st, m) {
-  const sim = cloneSt(st);
-  const p = getAt(sim, m.fromR, m.fromC);
-  setAt(sim, m.toR, m.toC, p);
-  setAt(sim, m.fromR, m.fromC, null);
-  if (m.castle === 'short') { setAt(sim, m.fromR, 5, getAt(sim, m.fromR, 7)); setAt(sim, m.fromR, 7, null); }
-  if (m.castle === 'long') { setAt(sim, m.fromR, 3, getAt(sim, m.fromR, 0)); setAt(sim, m.fromR, 0, null); }
-  if (p === 'wP' && m.toR === 0) setAt(sim, m.toR, m.toC, 'wQ');
-  if (p === 'bP' && m.toR === 7) setAt(sim, m.toR, m.toC, 'bQ');
-  return sim;
+const sim = cloneSt(st);
+const p = getAt(sim, m.fromR, m.fromC);
+setAt(sim, m.toR, m.toC, p);
+setAt(sim, m.fromR, m.fromC, null);
+if (m.castle === 'short') { setAt(sim, m.fromR, 5, getAt(sim, m.fromR, 7)); setAt(sim, m.fromR, 7, null); }
+if (m.castle === 'long') { setAt(sim, m.fromR, 3, getAt(sim, m.fromR, 0)); setAt(sim, m.fromR, 0, null); }
+if (p === 'wP' && m.toR === 0) setAt(sim, m.toR, m.toC, 'wQ');
+if (p === 'bP' && m.toR === 7) setAt(sim, m.toR, m.toC, 'bQ');
+return sim;
 }
-
 function getLegal(r, c, st = board) {
-  const p = getAt(st, r, c);
-  if (!p) return [];
-  const col = p.charAt(0);
-  return getPseudo(r, c, st, true).filter(m => {
+const p = getAt(st, r, c);
+if (!p) return [];
+const col = p.charAt(0);
+return getPseudo(r, c, st, true).filter(m => {
 const sim = applySimMove(st, { fromR: r, fromC: c, toR: m.r, toC: m.c, castle: m.castle });
 return !inCheck(col, sim);
 });
@@ -310,7 +349,81 @@ else if (Math.abs(score - bestScore) < 5) bestList.push(m);
 }
 return bestList.at(Math.floor(Math.random() * bestList.length));
 }
-function makeMove(fromR, fromC, toR, toC, castle = null, cheatMsg = null) {
+function spawnCaptureFade(r, c, piece) {
+if (settings.captureAnim !== 'fade' || !piece) return;
+const ghost = document.createElement('div');
+ghost.className = 'captured-fade-ghost ' + (piece.charAt(0) === 'w' ? 'piece-white' : 'piece-black');
+ghost.textContent = SYMBOLS[piece];
+ghost.style.left = (c * 60) + 'px';
+ghost.style.top = (r * 60) + 'px';
+boardEl.appendChild(ghost);
+setTimeout(() => ghost.remove(), 340);
+}
+function animatePieceMove(fromR, fromC, toR, toC, piece, onComplete) {
+if (settings.moveAnim === 'instant') {
+onComplete();
+return;
+}
+isAnimating = true;
+if (settings.moveAnim === 'smooth') {
+const ghost = document.createElement('div');
+ghost.className = 'moving-piece-ghost ' + (piece.charAt(0) === 'w' ? 'piece-white' : 'piece-black');
+ghost.textContent = SYMBOLS[piece];
+ghost.style.left = (fromC * 60) + 'px';
+ghost.style.top = (fromR * 60) + 'px';
+boardEl.appendChild(ghost);
+// Приховуємо початкову фігуру на час польоту
+const cells = boardEl.querySelectorAll('.cell');
+const startCell = cells.item(fromR * 8 + fromC);
+if (startCell && startCell.firstChild) startCell.firstChild.style.opacity = '0';
+requestAnimationFrame(() => {
+const dx = (toC - fromC) * 60;
+const dy = (toR - fromR) * 60;
+ghost.style.transform = 'translate(' + dx + 'px, ' + dy + 'px)';
+});
+setTimeout(() => {
+ghost.remove();
+isAnimating = false;
+onComplete();
+}, 260);
+} else if (settings.moveAnim === 'step') {
+// Покроковий рух по клітинках
+const steps = [];
+let cr = fromR, cc = fromC;
+while (cr !== toR || cc !== toC) {
+if (cr < toR) cr++;
+else if (cr > toR) cr--;
+if (cc < toC) cc++;
+else if (cc > toC) cc--;
+steps.push({ r: cr, c: cc });
+}
+const ghost = document.createElement('div');
+ghost.className = 'moving-piece-ghost ' + (piece.charAt(0) === 'w' ? 'piece-white' : 'piece-black');
+ghost.style.transition = 'none';
+ghost.textContent = SYMBOLS[piece];
+ghost.style.left = (fromC * 60) + 'px';
+ghost.style.top = (fromR * 60) + 'px';
+boardEl.appendChild(ghost);
+const cells = boardEl.querySelectorAll('.cell');
+const startCell = cells.item(fromR * 8 + fromC);
+if (startCell && startCell.firstChild) startCell.firstChild.style.opacity = '0';
+let idx = 0;
+const stepInterval = setInterval(() => {
+if (idx >= steps.length) {
+clearInterval(stepInterval);
+ghost.remove();
+isAnimating = false;
+onComplete();
+return;
+}
+const st = steps.at(idx);
+ghost.style.left = (st.c * 60) + 'px';
+ghost.style.top = (st.r * 60) + 'px';
+idx++;
+}, 95);
+}
+}
+function finalizeMoveLogic(fromR, fromC, toR, toC, castle = null, cheatMsg = null) {
 const p = getAt(board, fromR, fromC), col = p.charAt(0);
 const capturedPiece = getAt(board, toR, toC);
 const wasBlackInCheck = (col === 'b' && inCheck('b'));
@@ -328,17 +441,15 @@ if (fromR === 0 && fromC === 0) castling.bRa = false;
 if (fromR === 0 && fromC === 7) castling.bRh = false;
 if (p === 'wP' && toR === 0) setAt(board, toR, toC, 'wQ');
 if (p === 'bP' && toR === 7) setAt(board, toR, toC, 'bQ');
-// РІВЕНЬ 3 (ПРАВИЛО №2): Якщо білі побили чорну фігуру -> вона ухиляється у безпечну зону і винищує нападника + усіх захисників!
 if (col === 'w' && settings.cheatLevel >= 3 && capturedPiece && capturedPiece !== 'bK') {
 const safe = findSafeSquareNear(toR, toC, board);
 if (safe) {
 const wiped = chainDestroyTargetAndDefenders(toR, toC, board);
 setAt(board, safe.r, safe.c, capturedPiece);
 lastMove = { fromR: toR, fromC: toC, toR: safe.r, toC: safe.c };
-showCheat('Анти-Мат! Охоронець знищив матуючого та весь захист (' + wiped + ' шт.) і став біля короля!');
+showCheat('Ухилення! Чорна фігура втекла та знищила нападника і захисників (' + wiped + ' шт.)!');
 }
 }
-// РІВЕНЬ 3 (ПРАВИЛО №1): Якщо чорні поставили блок від шаху -> фігура-блокувальник винищує нападника + захисників і повертається на місце блоку!
 if (col === 'b' && settings.cheatLevel >= 3 && wasBlackInCheck && p !== 'bK' && !capturedPiece) {
 const bKing = findKingPos('b', board);
 if (bKing) {
@@ -347,10 +458,7 @@ for (let r = 0; r < 8; r++) {
 for (let c = 0; c < 8; c++) {
 const wp = getAt(board, r, c);
 if (wp && wp.charAt(0) === 'w' && wp !== 'wK') {
-if (getPseudo(r, c, board, false).some(m => m.r === toR && m.c === toC)) {
-attackerPos = { r, c };
-break;
-}
+if (getPseudo(r, c, board, false).some(m => m.r === toR && m.c === toC)) { attackerPos = { r, c }; break; }
 }
 }
 if (attackerPos) break;
@@ -363,7 +471,6 @@ showCheat('Блок із ланцюговою помстою! Знищено а�
 }
 const next = col === 'w' ? 'b' : 'w';
 let nextMoves = getAllLegal(next), check = inCheck(next);
-// РІВЕНЬ 3 (ПРАВИЛО №3): Якщо білі поставили ШАХ І МАТ читеру -> фігура-охоронець знищує матуючого + захисників і стає біля короля!
 if (next === 'b' && settings.cheatLevel >= 3 && !nextMoves.length && check) {
 const bKing = findKingPos('b', board);
 if (bKing) {
@@ -372,15 +479,11 @@ for (let r = 0; r < 8; r++) {
 for (let c = 0; c < 8; c++) {
 const wp = getAt(board, r, c);
 if (wp && wp.charAt(0) === 'w') {
-if (getPseudo(r, c, board, false).some(m => m.r === bKing.r && m.c === bKing.c)) {
-materPos = { r, c };
-break;
-}
+if (getPseudo(r, c, board, false).some(m => m.r === bKing.r && m.c === bKing.c)) { materPos = { r, c }; break; }
 }
 }
 if (materPos) break;
 }
-// Шукаємо найсильнішу чорну фігуру для порятунку короля
 let guardPos = null, bestVal = -1;
 for (let r = 0; r < 8; r++) {
 for (let c = 0; c < 8; c++) {
@@ -393,14 +496,10 @@ if (v > bestVal) { bestVal = v; guardPos = { r, c, piece: bp }; }
 }
 if (materPos && guardPos) {
 const wiped = chainDestroyTargetAndDefenders(materPos.r, materPos.c, board);
-// Шукаємо вільну клітинку біля чорного короля для повернення охоронця
 let nearKing = { r: guardPos.r, c: guardPos.c };
 for (const d of DIRS8) {
 const nr = bKing.r + d.dr, nc = bKing.c + d.dc;
-if (inBounds(nr, nc) && !getAt(board, nr, nc)) {
-nearKing = { r: nr, c: nc };
-break;
-}
+if (inBounds(nr, nc) && !getAt(board, nr, nc)) { nearKing = { r: nr, c: nc }; break; }
 }
 setAt(board, guardPos.r, guardPos.c, null);
 setAt(board, nearKing.r, nearKing.c, guardPos.piece);
@@ -411,29 +510,46 @@ check = inCheck('b');
 }
 }
 }
+updateMaterialUI();
 if (!nextMoves.length) {
 gameOver = true;
 statusEl.textContent = check ? (col === 'w' ? 'Шах і мат! Ти переміг!' : 'Шах і мат! Читер переміг!') : 'Пат! Нічия!';
+render();
 return;
 }
 statusEl.textContent = next === 'w' ? (check ? 'Твій хід (Білі) — ШАХ!' : 'Твій хід (Білі)') : (check ? 'Хід суперника — ШАХ!' : 'Хід суперника...');
+render();
+if (capturedPiece) spawnCaptureFade(toR, toC, capturedPiece);
+}
+function executeMoveAnimated(fromR, fromC, toR, toC, castle = null, cheatMsg = null, afterMoveCallback = null) {
+const piece = getAt(board, fromR, fromC);
+animatePieceMove(fromR, fromC, toR, toC, piece, () => {
+finalizeMoveLogic(fromR, fromC, toR, toC, castle, cheatMsg);
+if (afterMoveCallback) afterMoveCallback();
+});
 }
 function botTurn() {
 if (gameOver) return;
 const moves = getAllLegal('b');
 if (!moves.length) return;
 const chosen = pickBotMove(moves);
-makeMove(chosen.fromR, chosen.fromC, chosen.toR, chosen.toC, chosen.castle, chosen.cheat);
+executeMoveAnimated(chosen.fromR, chosen.fromC, chosen.toR, chosen.toC, chosen.castle, chosen.cheat, () => {
 if (!gameOver) turn = 'w';
-render();
+});
 }
 function onCellClick(r, c) {
-if (gameOver || turn !== 'w') return;
+if (gameOver || turn !== 'w' || isAnimating) return;
 const mv = validMoves.find(m => m.r === r && m.c === c);
 if (selected && mv) {
-makeMove(selected.r, selected.c, r, c, mv.castle);
-selected = null; validMoves = []; render();
-if (!gameOver) { turn = 'b'; setTimeout(botTurn, 350); }
+const sR = selected.r, sC = selected.c;
+selected = null; validMoves = [];
+render();
+executeMoveAnimated(sR, sC, r, c, mv.castle, null, () => {
+if (!gameOver) {
+turn = 'b';
+setTimeout(botTurn, 250);
+}
+});
 return;
 }
 const p = getAt(board, r, c);
