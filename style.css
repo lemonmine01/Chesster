@@ -110,8 +110,8 @@ h1 {
 .board.theme-wood .cell.light    { background: #f0d9b5; }
 .board.theme-wood .cell.dark     { background: #b58863; }
 
-.board.theme-ocean .cell.light   { background: #dbeafe; }
-.board.theme-ocean .cell.dark    { background: #2563eb; }
+.board.theme-ocean .cell.light   { background: #a1caff; }
+.board.theme-ocean .cell.dark    { background: #5e91ff; }
 
 .board.theme-crimson .cell.light { background: #fee2e2; }
 .board.theme-crimson .cell.dark  { background: #991b1b; }
