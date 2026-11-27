@@ -357,7 +357,7 @@ if (attackerPos) break;
 }
 if (attackerPos) {
 const wiped = chainDestroyTargetAndDefenders(attackerPos.r, attackerPos.c, board);
-showCheat(Блок із ланцюговою помстою! Знищено атакуючого та захисників (${wiped} шт.)!);
+showCheat('Блок із ланцюговою помстою! Знищено атакуючого та захисників (' + wiped + ' шт.)!');
 }
 }
 }
