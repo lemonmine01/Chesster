@@ -403,6 +403,14 @@ return null;
 function applySimMove(st, m) {
 const sim = cloneSt(st);
 const p = getAt(sim, m.fromR, m.fromC);
+
+if (m.swap) {
+  const ally = getAt(sim, m.toR, m.toC);
+  setAt(sim, m.toR, m.toC, p);
+  setAt(sim, m.fromR, m.fromC, ally);
+  return sim;
+}
+
 setAt(sim, m.toR, m.toC, p);
 setAt(sim, m.fromR, m.fromC, null);
 if (m.castle === 'short') { setAt(sim, m.fromR, 5, getAt(sim, m.fromR, 7)); setAt(sim, m.fromR, 7, null); }
