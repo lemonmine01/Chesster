@@ -87,7 +87,6 @@ function saveAllPrefs() {
 }
 
 function loadAllPrefs() {
-
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return;
@@ -112,11 +111,10 @@ function loadAllPrefs() {
     if (volumeValLabel) volumeValLabel.textContent = pct + '%';
   }
 
-    if (whitePlayerSelect) whitePlayerSelect.value = matchConfig.whiteType;
+  if (whitePlayerSelect) whitePlayerSelect.value = matchConfig.whiteType;
   if (blackPlayerSelect) blackPlayerSelect.value = matchConfig.blackType;
   if (cheaterRoleSelect) cheaterRoleSelect.value = matchConfig.cheaterRole;
 }
-
 
 let board = [], turn = 'w', selected = null, validMoves = [], gameOver = false, lastMove = null, isAnimating = false, gameStarted = false;
 let castling = { wK: true, wRa: true, wRh: true, bK: true, bRa: true, bRh: true };
@@ -159,13 +157,7 @@ applySettingsBtn.onclick = () => {
   if (soundEnabledCheck) settings.soundEnabled = soundEnabledCheck.checked;
   if (soundVolumeRange) settings.soundVolume = parseInt(soundVolumeRange.value, 10) / 100;
 
-    saveAllPrefs();
-  document.body.className = settings.uiTheme;
-  boardEl.className = 'board theme-' + settings.theme;
-  settingsModal.classList.add('hidden');
-  updateMaterialUI();
-  render();
-
+  saveAllPrefs();
   document.body.className = settings.uiTheme;
   boardEl.className = 'board theme-' + settings.theme;
   settingsModal.classList.add('hidden');
@@ -263,46 +255,44 @@ function getPseudo(r, c, st = board, allowCastle = true) {
     const t = getAt(st, nr, nc);
     if (!t) { addUnique(nr, nc, extra); return true; }
     if (t.charAt(0) !== col) addUnique(nr, nc, extra);
-    return false;
-  };
-
-  const addKingSteps = (label) => {
-    for (const d of DIRS8) pushOk(r + d.dr, c + d.dc, { cheat: label });
-  };
-
-  if (type === 'P') {
-    const dir = col === 'w' ? -1 : 1, start = col === 'w' ? 6 : 1;
-    if (inBounds(r + dir, c) && !getAt(st, r + dir, c)) {
-      addUnique(r + dir, c);
-      if ((r === start || isCheater2) && inBounds(r + 2 * dir, c) && !getAt(st, r + 2 * dir, c)) {
-        addUnique(r + 2 * dir, c, { cheat: r !== start ? 'Пішак зробив подвійний ривок вперед!' : null });
-      }
-    }
-    for (const dc of [-1, 1]) {
-      const nr = r + dir, nc = c + dc;
-      if (inBounds(nr, nc)) {
-        const t = getAt(st, nr, nc);
-        if (t && t.charAt(0) !== col) addUnique(nr, nc);
-        else if (!t && isCheater1) addUnique(nr, nc, { cheat: 'Пішак пішов по діагоналі!' });
-      }
-      if (isCheater1 && inBounds(r, c + dc)) {
-        const sideT = getAt(st, r, c + dc);
-        if (!sideT || sideT.charAt(0) !== col) addUnique(r, c + dc, { cheat: 'Пішак крокував убік!' });
-      }
-    }
-  } else if (type === 'N') {
-    KNIGHT_JUMPS.forEach(j => pushOk(r + j.dr, c + j.dc));
-    if (isCheater1) addKingSteps('Кінь походив як король!');
-  } else if (type === 'K') {
-    const maxSteps = (isCheater1 && allowCastle && inCheck(col, st)) ? 2 : 1;
-    for (const d of DIRS8) {
-      for (let s = 1; s <= maxSteps; s++) {
-        if (!pushOk(r + d.dr * s, c + d.dc * s, { cheat: s === 2 ? 'Король відійшов на 2 клітинки!' : null })) break;
-      }
-    }
-    if (allowCastle) {
-      const row = col === 'w' ? 7 : 0;
-      if (r === row && c === 4 && !inCheck(col, st)) {
+return false;
+};
+const addKingSteps = (label) => {
+for (const d of DIRS8) pushOk(r + d.dr, c + d.dc, { cheat: label });
+};
+if (type === 'P') {
+const dir = col === 'w' ? -1 : 1, start = col === 'w' ? 6 : 1;
+if (inBounds(r + dir, c) && !getAt(st, r + dir, c)) {
+addUnique(r + dir, c);
+if ((r === start || isCheater2) && inBounds(r + 2 * dir, c) && !getAt(st, r + 2 * dir, c)) {
+addUnique(r + 2 * dir, c, { cheat: r !== start ? 'Пішак зробив подвійний ривок вперед!' : null });
+}
+}
+for (const dc of [-1, 1]) {
+const nr = r + dir, nc = c + dc;
+if (inBounds(nr, nc)) {
+const t = getAt(st, nr, nc);
+if (t && t.charAt(0) !== col) addUnique(nr, nc);
+else if (!t && isCheater1) addUnique(nr, nc, { cheat: 'Пішак пішов по діагоналі!' });
+}
+if (isCheater1 && inBounds(r, c + dc)) {
+const sideT = getAt(st, r, c + dc);
+if (!sideT || sideT.charAt(0) !== col) addUnique(r, c + dc, { cheat: 'Пішак крокував убік!' });
+}
+}
+} else if (type === 'N') {
+KNIGHT_JUMPS.forEach(j => pushOk(r + j.dr, c + j.dc));
+if (isCheater1) addKingSteps('Кінь походив як король!');
+} else if (type === 'K') {
+const maxSteps = (isCheater1 && allowCastle && inCheck(col, st)) ? 2 : 1;
+for (const d of DIRS8) {
+for (let s = 1; s <= maxSteps; s++) {
+if (!pushOk(r + d.dr * s, c + d.dc * s, { cheat: s === 2 ? 'Король відійшов на 2 клітинки!' : null })) break;
+}
+}
+if (allowCastle) {
+const row = col === 'w' ? 7 : 0;
+if (r === row && c === 4 && !inCheck(col, st)) {
 if (castling[col+'K'] && castling[col+'Rh'] && !getAt(st,row,5) && !getAt(st,row,6) && !isAttacked(row,5,col,st) && !isAttacked(row,6,col,st)) addUnique(row, 6, { castle: 'short' });
 if (castling[col+'K'] && castling[col+'Ra'] && !getAt(st,row,3) && !getAt(st,row,2) && !getAt(st,row,1) && !isAttacked(row,3,col,st) && !isAttacked(row,2,col,st)) addUnique(row, 2, { castle: 'long' });
 }
@@ -330,7 +320,6 @@ if (isCheater1 && type === 'R') addKingSteps('Тура походила як к�
 if (isCheater1 && type === 'B') addKingSteps('Слон походив як король!');
 if (isCheater1 && type === 'Q') KNIGHT_JUMPS.forEach(j => pushOk(r + j.dr, c + j.dc, { cheat: 'Валькірія стрибнула як кінь!' }));
 }
-// ФИЧА 3-ГО РІВНЯ: Обмін місцями із союзною фігурою, до якої поточна фігура «дістає»
 if (isCheater3 && allowCastle) {
 const canReachAlly = (tr, tc) => {
 const dr = tr - r, dc = tc - c;
@@ -488,28 +477,87 @@ getLegal(r, c, st).forEach(m => all.push({ fromR: r, fromC: c, toR: m.r, toC: m.
 }
 return all;
 }
+const PST_KNIGHT = [
+[-50,-40,-30,-30,-30,-30,-40,-50],
+[-40,-20,  0,  0,  0,  0,-20,-40],
+[-30,  0, 14, 18, 18, 14,  0,-30],
+[-30,  6, 18, 24, 24, 18,  6,-30],
+[-30,  0, 18, 24, 24, 18,  0,-30],
+[-30,  6, 14, 18, 18, 14,  6,-30],
+[-40,-20,  0,  6,  6,  0,-20,-40],
+[-50,-40,-30,-30,-30,-30,-40,-50]
+];
+const PST_BISHOP = [
+[-20,-10,-10,-10,-10,-10,-10,-20],
+[-10,  0,  0,  0,  0,  0,  0,-10],
+[-10,  0,  8, 12, 12,  8,  0,-10],
+[-10,  6,  6, 12, 12,  6,  6,-10],
+[-10,  0, 12, 12, 12, 12,  0,-10],
+[-10, 12, 12, 12, 12, 12, 12,-10],
+[-10,  6,  0,  0,  0,  0,  6,-10],
+[-20,-10,-10,-10,-10,-10,-10,-20]
+];
+const PST_QUEEN = [
+[-20,-10,-10, -5, -5,-10,-10,-20],
+[-10,  0,  0,  0,  0,  0,  0,-10],
+[-10,  0,  5,  5,  5,  5,  0,-10],
+[ -5,  0,  5,  6,  6,  5,  0, -5],
+[  0,  0,  5,  6,  6,  5,  0, -5],
+[-10,  5,  5,  5,  5,  5,  0,-10],
+[-10,  0,  5,  0,  0,  0,  0,-10],
+[-20,-10,-10, -5, -5,-10,-10,-20]
+];
+function getPosBonus(piece, r, c) {
+const col = piece.charAt(0);
+const type = piece.charAt(1);
+const pr = col === 'w' ? r : 7 - r;
+if (type === 'P') {
+const centerFile = (c === 3 || c === 4) ? 12 : 0;
+return (7 - pr) * 6 + centerFile;
+}
+if (type === 'N') return PST_KNIGHT.at(pr).at(c);
+if (type === 'B') return PST_BISHOP.at(pr).at(c);
+if (type === 'Q') return PST_QUEEN.at(pr).at(c);
+if (type === 'K') {
+return (pr === 7 && (c <= 2 || c >= 6)) ? 25 : -25;
+}
+return (pr === 0) ? 10 : 0;
+}
 function evaluateBoard(st, botCol) {
 let score = 0;
-for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+for (let r = 0; r < 8; r++) {
+for (let c = 0; c < 8; c++) {
 const p = getAt(st, r, c);
 if (!p) continue;
-const val = VALUES[p.charAt(1)];
-const centerBonus = ((r === 3 || r === 4) && (c === 3 || c === 4)) ? 25 : 0;
-const advanceBonus = p.charAt(0) === 'b' ? r * 4 : (7 - r) * 4;
-const pts = val + centerBonus + advanceBonus;
-score += p.charAt(0) === botCol ? pts : -pts;
+const col = p.charAt(0);
+const pts = VALUES[p.charAt(1)] + getPosBonus(p, r, c);
+score += col === botCol ? pts : -pts;
 }
+}
+const fRow = botCol === 'b' ? 1 : 6;
+const oppCol = botCol === 'w' ? 'b' : 'w';
+if (isAttacked(fRow, 5, botCol, st)) score -= 85;
+if (isAttacked(fRow === 1 ? 0 : 7, 4, botCol, st)) score -= 60;
+if (isAttacked(botCol === 'b' ? 6 : 1, 5, oppCol, st)) score += 75;
 return score;
+}
+function sortMovesFast(moves) {
+return moves.sort((a, b) => {
+const scoreA = (a.target ? VALUES[a.target.charAt(1)] * 10 : 0) + (a.cheat ? 40 : 0);
+const scoreB = (b.target ? VALUES[b.target.charAt(1)] * 10 : 0) + (b.cheat ? 40 : 0);
+return scoreB - scoreA;
+});
 }
 function minimax(st, depth, alpha, beta, isMax, botCol) {
 const oppCol = botCol === 'w' ? 'b' : 'w';
 const curCol = isMax ? botCol : oppCol;
-const moves = getAllLegal(curCol, st);
+let moves = getAllLegal(curCol, st);
 if (!moves.length) {
 if (inCheck(curCol, st)) return isMax ? -99999 - depth * 100 : 99999 + depth * 100;
 return 0;
 }
 if (depth === 0) return evaluateBoard(st, botCol);
+moves = sortMovesFast(moves);
 if (isMax) {
 let maxEval = -Infinity;
 for (const m of moves) {
@@ -533,167 +581,27 @@ return minEval;
 function pickBotMove(moves, botCol) {
 if (settings.difficulty === 'easy') {
 const cheatMoves = moves.filter(m => m.cheat);
-if (cheatMoves.length && Math.random() < 0.5) return cheatMoves.at(Math.floor(Math.random() * cheatMoves.length));
+if (cheatMoves.length && Math.random() < 0.45) return cheatMoves.at(Math.floor(Math.random() * cheatMoves.length));
 return moves.at(Math.floor(Math.random() * moves.length));
 }
-const depth = settings.difficulty === 'hard' ? 2 : 1;
+const depth = settings.difficulty === 'medium' ? 2 : 3;
+const randomNoise = settings.difficulty === 'grandmaster' ? 1 : (settings.difficulty === 'hard' ? 4 : 12);
+const orderedMoves = sortMovesFast([...moves]);
 let bestScore = -Infinity, bestList = [];
-for (const m of moves) {
+for (const m of orderedMoves) {
 const sim = applySimMove(board, m);
 let score = minimax(sim, depth - 1, -Infinity, Infinity, false, botCol);
-if (m.cheat) score += 35;
-score += Math.random() * 8;
-if (score > bestScore) { bestScore = score; bestList = [m]; }
-else if (Math.abs(score - bestScore) < 5) bestList.push(m);
+if (m.cheat) score += m.swap ? 20 : 45;
+score += Math.random() * randomNoise;
+if (score > bestScore) {
+bestScore = score;
+bestList = [m];
+} else if (Math.abs(score - bestScore) < 3) {
+bestList.push(m);
+}
 }
 return bestList.at(Math.floor(Math.random() * bestList.length));
-
-
-
-const PST_KNIGHT = [
-  [-50,-40,-30,-30,-30,-30,-40,-50],
-  [-40,-20,  0,  0,  0,  0,-20,-40],
-  [-30,  0, 14, 18, 18, 14,  0,-30],
-  [-30,  6, 18, 24, 24, 18,  6,-30],
-  [-30,  0, 18, 24, 24, 18,  0,-30],
-  [-30,  6, 14, 18, 18, 14,  6,-30],
-  [-40,-20,  0,  6,  6,  0,-20,-40],
-  [-50,-40,-30,-30,-30,-30,-40,-50]
-];
-
-const PST_BISHOP = [
-  [-20,-10,-10,-10,-10,-10,-10,-20],
-  [-10,  0,  0,  0,  0,  0,  0,-10],
-  [-10,  0,  8, 12, 12,  8,  0,-10],
-  [-10,  6,  6, 12, 12,  6,  6,-10],
-  [-10,  0, 12, 12, 12, 12,  0,-10],
-  [-10, 12, 12, 12, 12, 12, 12,-10],
-  [-10,  6,  0,  0,  0,  0,  6,-10],
-  [-20,-10,-10,-10,-10,-10,-10,-20]
-];
-
-const PST_QUEEN = [
-  [-20,-10,-10, -5, -5,-10,-10,-20],
-  [-10,  0,  0,  0,  0,  0,  0,-10],
-  [-10,  0,  5,  5,  5,  5,  0,-10],
-  [ -5,  0,  5,  6,  6,  5,  0, -5],
-  [  0,  0,  5,  6,  6,  5,  0, -5],
-  [-10,  5,  5,  5,  5,  5,  0,-10],
-  [-10,  0,  5,  0,  0,  0,  0,-10],
-  [-20,-10,-10, -5, -5,-10,-10,-20]
-];
-
-
-
-function getPosBonus(piece, r, c) {
-  const col = piece.charAt(0);
-  const type = piece.charAt(1);
-  const pr = col === 'w' ? r : 7 - r;
-  if (type === 'P') {
-    const centerFile = (c === 3 || c === 4) ? 12 : 0;
-    return (7 - pr) * 6 + centerFile;
-  }
-  if (type === 'N') return PST_KNIGHT.at(pr).at(c);
-  if (type === 'B') return PST_BISHOP.at(pr).at(c);
-  if (type === 'Q') return PST_QUEEN.at(pr).at(c);
-  if (type === 'K') {
-    const safeCorner = (pr === 7 && (c <= 2 || c >= 6)) ? 25 : -25;
-    return safeCorner;
-  }
-  return (pr === 0) ? 10 : 0;
 }
-
-function evaluateBoard(st, botCol) {
-  let score = 0;
-  for (let r = 0; r < 8; r++) {
-    for (let c = 0; c < 8; c++) {
-      const p = getAt(st, r, c);
-      if (!p) continue;
-      const col = p.charAt(0);
-      const pts = VALUES[p.charAt(1)] + getPosBonus(p, r, c);
-      score += col === botCol ? pts : -pts;
-    }
-  }
-
-  const fRow = botCol === 'b' ? 1 : 6;
-  const oppCol = botCol === 'w' ? 'b' : 'w';
-  if (isAttacked(fRow, 5, botCol, st)) score -= 85;
-  if (isAttacked(fRow === 1 ? 0 : 7, 4, botCol, st)) score -= 60;
-  if (isAttacked(botCol === 'b' ? 6 : 1, 5, oppCol, st)) score += 75;
-
-  return score;
-}
-
-function sortMovesFast(moves) {
-  return moves.sort((a, b) => {
-    const scoreA = (a.target ? VALUES[a.target.charAt(1)] * 10 : 0) + (a.cheat ? 40 : 0);
-    const scoreB = (b.target ? VALUES[b.target.charAt(1)] * 10 : 0) + (b.cheat ? 40 : 0);
-    return scoreB - scoreA;
-  });
-}
-
-function minimax(st, depth, alpha, beta, isMax, botCol) {
-  const oppCol = botCol === 'w' ? 'b' : 'w';
-  const curCol = isMax ? botCol : oppCol;
-  let moves = getAllLegal(curCol, st);
-  if (!moves.length) {
-    if (inCheck(curCol, st)) return isMax ? -99999 - depth * 100 : 99999 + depth * 100;
-    return 0;
-  }
-  if (depth === 0) return evaluateBoard(st, botCol);
-
-  moves = sortMovesFast(moves);
-
-  if (isMax) {
-    let maxEval = -Infinity;
-    for (const m of moves) {
-      const ev = minimax(applySimMove(st, m), depth - 1, alpha, beta, false, botCol);
-      if (ev > maxEval) maxEval = ev;
-      if (ev > alpha) alpha = ev;
-      if (beta <= alpha) break;
-    }
-    return maxEval;
-  } else {
-    let minEval = Infinity;
-    for (const m of moves) {
-      const ev = minimax(applySimMove(st, m), depth - 1, alpha, beta, true, botCol);
-      if (ev < minEval) minEval = ev;
-      if (ev < beta) beta = ev;
-      if (beta <= alpha) break;
-    }
-    return minEval;
-  }
-}
-
-function pickBotMove(moves, botCol) {
-  if (settings.difficulty === 'easy') {
-    const cheatMoves = moves.filter(m => m.cheat);
-    if (cheatMoves.length && Math.random() < 0.45) return cheatMoves.at(Math.floor(Math.random() * cheatMoves.length));
-    return moves.at(Math.floor(Math.random() * moves.length));
-  }
-
-  const depth = settings.difficulty === 'medium' ? 2 : 3;
-  const randomNoise = settings.difficulty === 'grandmaster' ? 1 : (settings.difficulty === 'hard' ? 4 : 12);
-  const orderedMoves = sortMovesFast([...moves]);
-
-  let bestScore = -Infinity, bestList = [];
-  for (const m of orderedMoves) {
-    const sim = applySimMove(board, m);
-    let score = minimax(sim, depth - 1, -Infinity, Infinity, false, botCol);
-
-    if (m.cheat) score += m.swap ? 20 : 45;
-    score += Math.random() * randomNoise;
-
-    if (score > bestScore) {
-      bestScore = score;
-      bestList = [m];
-    } else if (Math.abs(score - bestScore) < 3) {
-      bestList.push(m);
-    }
-  }
-  return bestList.at(Math.floor(Math.random() * bestList.length));
-}
-
 function spawnCaptureFade(r, c, piece) {
 if (settings.captureAnim !== 'fade' || !piece) return;
 const ghost = document.createElement('div');
@@ -894,16 +802,16 @@ const check = inCheck(next);
 if (getEffectiveCheatLevel(next) >= 3 && !nextMoves.length && check) {
 const defKing = findKingPos(next, board);
 if (defKing) {
-      let guardPos = null, bestVal = -1;
-      for (let r = 0; r < 8; r++) {
-        for (let c = 0; c < 8; c++) {
-          const dp = getAt(board, r, c);
-          if (dp && dp.charAt(0) === next) {
-            const v = dp === next + 'K' ? 1 : VALUES[dp.charAt(1)];
-            if (v > bestVal) { bestVal = v; guardPos = { r, c, piece: dp }; }
-          }
-        }
-      }
+let guardPos = null, bestVal = -1;
+for (let r = 0; r < 8; r++) {
+for (let c = 0; c < 8; c++) {
+const dp = getAt(board, r, c);
+if (dp && dp.charAt(0) === next) {
+const v = dp === next + 'K' ? 1 : VALUES[dp.charAt(1)];
+if (v > bestVal) { bestVal = v; guardPos = { r, c, piece: dp }; }
+}
+}
+}
 if (guardPos) {
 const simBoard = cloneSt(board);
 const allChain = [];
@@ -1032,11 +940,13 @@ botTimer = setTimeout(() => runBotTurn('w'), 350);
 }
 };
 menuBtn.onclick = () => {
-  gameStarted = false;
-  clearTimeout(botTimer);
-  menuBtn.classList.add('hidden');
-  boardOverlayEl.classList.remove('hidden');
-  restartBtn.classList.remove('hidden');
-  settingsBtn.classList.remove('hidden');
-  initBoard();
+gameStarted = false;
+clearTimeout(botTimer);
+menuBtn.classList.add('hidden');
+boardOverlayEl.classList.remove('hidden');
+restartBtn.classList.remove('hidden');
+settingsBtn.classList.remove('hidden');
+initBoard();
 };
+loadAllPrefs();
+initBoard();Штше

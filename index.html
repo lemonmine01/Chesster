@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Chesster — Шахи з роллю Читера</title>
-  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://w3.org' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♛</text></svg>">
+  <link rel="stylesheet" href="style.css?v=30">
 </head>
 <body class="ui-dark-gray">
   <div class="game-container">
@@ -86,20 +87,20 @@
 
       <div class="setting-group">
         <label for="difficultySelect">Складність гри (Розум бота):</label>
-                <select id="difficultySelect">
+        <select id="difficultySelect">
           <option value="easy">Новачок (Простий)</option>
           <option value="medium" selected>Любитель (Тактичний)</option>
           <option value="hard">Профі (Глибокий розрахунок)</option>
           <option value="grandmaster">Гроссмейстер (Непереможний розум)</option>
         </select>
-
+      </div>
 
       <div class="setting-group">
         <label for="cheatLevelSelect">Рівень ролі Читера:</label>
         <select id="cheatLevelSelect">
           <option value="1" selected>1 — Хитрий (Суперходи фігур)</option>
           <option value="2">2 — Нахабний (Пробивання та ривок пішака)</option>
-          <option value="3">3 — Неможливий (Ухилення + Анти-Мат)</option>
+          <option value="3">3 — Неможливий (Ухилення + Анти-Мат + Обмін)</option>
         </select>
       </div>
 
@@ -140,6 +141,21 @@
       </div>
 
       <div class="setting-group checkbox-group">
+        <input type="checkbox" id="showHintsCheck" checked>
+        <label for="showHintsCheck">Показувати підказки ходів</label>
+      </div>
+
+      <div class="setting-group checkbox-group">
+        <input type="checkbox" id="showMaterialCheck">
+        <label for="showMaterialCheck">Показувати матеріал</label>
+      </div>
+
+      <div class="setting-group checkbox-group">
+        <input type="checkbox" id="trashTalkCheck">
+        <label for="trashTalkCheck">Повідомлення читера під час злому</label>
+      </div>
+
+      <div class="setting-group checkbox-group">
         <input type="checkbox" id="soundEnabledCheck" checked>
         <label for="soundEnabledCheck">Звукові ефекти</label>
       </div>
@@ -149,12 +165,11 @@
         <input type="range" id="soundVolumeRange" min="0" max="100" value="80">
       </div>
 
-    
-
+      
       <button id="applySettingsBtn" class="btn full-width">Застосувати та закрити</button>
     </div>
   </div>
 
-  <script src="script.js?v=230"></script>
+  <script src="script.js?v=30"></script>
 </body>
 </html>
