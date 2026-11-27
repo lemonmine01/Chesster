@@ -201,6 +201,7 @@ function getPseudo(r, c, st = board, allowCastle = true) {
   const lvl = getEffectiveCheatLevel(col);
   const isCheater1 = lvl >= 1;
   const isCheater2 = lvl >= 2;
+  const isCheater3 = lvl >= 3
 
   const addUnique = (nr, nc, extra = {}) => {
     if (!moves.some(m => m.r === nr && m.c === nc)) moves.push({ r: nr, c: nc, ...extra });
@@ -278,6 +279,49 @@ if (isCheater1 && type === 'R') addKingSteps('Тура походила як к�
 if (isCheater1 && type === 'B') addKingSteps('Слон походив як король!');
 if (isCheater1 && type === 'Q') KNIGHT_JUMPS.forEach(j => pushOk(r + j.dr, c + j.dc, { cheat: 'Валькірія стрибнула як кінь!' }));
 }
+
+  // ФИЧА 3-ГО УРОВНЯ: Обмен местами со своей фигурой, если текущая фигура до неё «достаёт»
+  if (isCheater3 && allowCastle) {
+    const canReachAlly = (tr, tc) => {
+      const dr = tr - r, dc = tc - c;
+      if (type === 'N') return (Math.abs(dr) === 2 && Math.abs(dc) === 1) || (Math.abs(dr) === 1 && Math.abs(dc) === 2);
+      if (type === 'K') return Math.abs(dr) <= 1 && Math.abs(dc) <= 1;
+      if (type === 'P') {
+        const dir = col === 'w' ? -1 : 1;
+        return (dr === dir && Math.abs(dc) <= 1) || (dr === 0 && Math.abs(dc) === 1);
+      }
+      const isStraight = dr === 0 || dc === 0;
+      const isDiag = Math.abs(dr) === Math.abs(dc);
+      if (type === 'R' && !isStraight) return false;
+      if (type === 'B' && !isDiag) return false;
+      if (type === 'Q' && !isStraight && !isDiag && !((Math.abs(dr) === 2 && Math.abs(dc) === 1) || (Math.abs(dr) === 1 && Math.abs(dc) === 2))) return false;
+      if ((type === 'Q') && ((Math.abs(dr) === 2 && Math.abs(dc) === 1) || (Math.abs(dr) === 1 && Math.abs(dc) === 2))) return true;
+
+      const stepR = dr === 0 ? 0 : (dr > 0 ? 1 : -1);
+      const stepC = dc === 0 ? 0 : (dc > 0 ? 1 : -1);
+      let cr = r + stepR, cc = c + stepC, jumped = false;
+      while (cr !== tr || cc !== tc) {
+        if (getAt(st, cr, cc)) {
+          if (!jumped) jumped = true; // На 3-м уровне может достать даже через 1 фигуру
+          else return false;
+        }
+        cr += stepR;
+        cc += stepC;
+      }
+      return true;
+    };
+
+    for (let ar = 0; ar < 8; ar++) {
+      for (let ac = 0; ac < 8; ac++) {
+        if (ar === r && ac === c) continue;
+        const ally = getAt(st, ar, ac);
+        if (ally && ally.charAt(0) === col && canReachAlly(ar, ac)) {
+          addUnique(ar, ac, { swap: true, cheat: 'Обмін місцями! Фігури миттєво помінялися позиціями!' });
+        }
+      }
+    }
+  }
+
 return moves;
 }
 function isAttacked(tr, tc, defCol, st = board) {
