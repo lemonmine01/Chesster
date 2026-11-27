@@ -488,6 +488,8 @@ function checkGameEndAndContinue(lastMoverCol, afterAllCallback) {
     updateMaterialUI();
     gameOver = true;
     statusEl.textContent = loserCol === 'b' ? 'Короля читера знищено! Ти переміг!' : 'Твого короля знищено! Читер переміг!';
+    restartBtn.classList.remove('hidden');
+    settingsBtn.classList.remove('hidden');
     render();
     return;
   }
@@ -501,6 +503,8 @@ function checkGameEndAndContinue(lastMoverCol, afterAllCallback) {
   if (!nextMoves.length) {
     gameOver = true;
     statusEl.textContent = check ? (lastMoverCol === 'w' ? 'Шах і мат! Ти переміг!' : 'Шах і мат! Читер переміг!') : 'Пат! Нічия!';
+    restartBtn.classList.remove('hidden');
+    settingsBtn.classList.remove('hidden');
     render();
     return;
   }
@@ -690,5 +694,10 @@ function render() {
   }
 }
 
-restartBtn.onclick = initBoard;
+restartBtn.onclick = () => {
+  restartBtn.classList.add('hidden');
+  settingsBtn.classList.add('hidden');
+  initBoard();
+};
+
 initBoard();
