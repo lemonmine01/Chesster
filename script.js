@@ -95,7 +95,7 @@ function isBotTurn(col) {
 function getTurnLabel(col, check) {
   const sideName = col === 'w' ? 'Білі' : 'Чорні';
   const ctrlName = isBotTurn(col) ? 'Bot' : 'You';
-  const roleTag = hasCheaterRole(col) ? ' 🎭Читер' : '';
+  const roleTag = hasCheaterRole(col) ? ' Читер' : '';
   return 'Хід: ' + sideName + ' (' + ctrlName + roleTag + ')' + (check ? ' — ШАХ!' : '');
 }
 
@@ -108,11 +108,12 @@ applySettingsBtn.onclick = () => {
   settings.theme = themeSelect.value;
   settings.moveAnim = moveAnimSelect.value;
   settings.captureAnim = captureAnimSelect.value;
-  settings.showHints = showHintsCheck.checked;
-  settings.showMaterial = showMaterialCheck.checked;
-  settings.trashTalk = trashTalkCheck.checked;
-  settings.soundEnabled = soundEnabledCheck.checked;
-  settings.soundVolume = parseInt(soundVolumeRange.value, 10) / 100;
+  if (showHintsCheck) settings.showHints = showHintsCheck.checked;
+  if (showMaterialCheck) settings.showMaterial = showMaterialCheck.checked;
+  if (trashTalkCheck) settings.trashTalk = trashTalkCheck.checked;
+  if (soundEnabledCheck) settings.soundEnabled = soundEnabledCheck.checked;
+  if (soundVolumeRange) settings.soundVolume = parseInt(soundVolumeRange.value, 10) / 100;
+
 
   document.body.className = settings.uiTheme;
   boardEl.className = 'board theme-' + settings.theme;
