@@ -119,8 +119,8 @@ h1 {
 .board.theme-purple .cell.light  { background: #f3e8ff; }
 .board.theme-purple .cell.dark   { background: #6b21a8; }
 
-.board.theme-cyber .cell.light   { background: #8497d0; }
-.board.theme-cyber .cell.dark    { background: #6f6fd0; }
+.board.theme-cyber .cell.light   { background: #abc0ff; }
+.board.theme-cyber .cell.dark    { background: #8297ff; }
 
 .board.theme-DarkWood .cell.light   { background: #f0c48a; }
 .board.theme-DarkWood .cell.dark    { background: #2d1d0a; }
