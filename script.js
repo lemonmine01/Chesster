@@ -38,6 +38,7 @@ let settings = {
   showHints: true,
   showMaterial: false,
   trashTalk: false
+  let settings
 };
 
 let matchConfig = {
@@ -84,6 +85,9 @@ applySettingsBtn.onclick = () => {
   settings.showHints = showHintsCheck.checked;
   settings.showMaterial = showMaterialCheck.checked;
   settings.trashTalk = trashTalkCheck.checked;
+  settings.soundEnabled = soundEnabledCheck.checked;
+  settings.soundVolume = parseInt(soundVolumeRange.value, 10) / 100;
+
 
   document.body.className = settings.uiTheme;
   boardEl.className = 'board theme-' + settings.theme;
@@ -431,6 +435,9 @@ if (settings.moveAnim === 'instant' || !piece) {
 onComplete();
 return;
 }
+  if (settings.moveAnim === 'smooth') {
+    playSound('smooth');
+  }
 isAnimating = true;
 if (settings.moveAnim === 'smooth') {
 const ghost = document.createElement('div');
@@ -564,7 +571,13 @@ if (fromR === 0 && fromC === 0) castling.bRa = false;
 if (fromR === 0 && fromC === 7) castling.bRh = false;
 if (p === 'wP' && toR === 0) setAt(board, toR, toC, 'wQ');
 if (p === 'bP' && toR === 7) setAt(board, toR, toC, 'bQ');
-if (capturedPiece) {
+  if (capturedPiece) {
+    playSound('capture');
+    render();
+    spawnCaptureFade(toR, toC, capturedPiece);
+  } else if (settings.moveAnim !== 'smooth') {
+    playSound('move');
+  }
 render();
 spawnCaptureFade(toR, toC, capturedPiece);
 }
