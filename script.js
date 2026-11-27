@@ -27,6 +27,12 @@ const soundEnabledCheck = document.getElementById('soundEnabledCheck');
 const soundVolumeRange = document.getElementById('soundVolumeRange');
 const volumeValLabel = document.getElementById('volumeValLabel');
 
+const statWinsEl = document.getElementById('statWins');
+const statLossesEl = document.getElementById('statLosses');
+const statDrawsEl = document.getElementById('statDraws');
+const resetStatsBtn = document.getElementById('resetStatsBtn');
+
+
 if (soundVolumeRange && volumeValLabel) {
   soundVolumeRange.oninput = () => {
     volumeValLabel.textContent = soundVolumeRange.value + '%';
@@ -75,13 +81,34 @@ let matchConfig = {
   cheaterRole: 'black'
 };
 
+let playerStats = {
+  wins: 0,
+  losses: 0,
+  draws: 0
+};
+
+function updateStatsUI() {
+  if (statWinsEl) statWinsEl.textContent = playerStats.wins;
+  if (statLossesEl) statLossesEl.textContent = playerStats.losses;
+  if (statDrawsEl) statDrawsEl.textContent = playerStats.draws;
+}
+
+if (resetStatsBtn) {
+  resetStatsBtn.onclick = () => {
+    playerStats = { wins: 0, losses: 0, draws: 0 };
+    updateStatsUI();
+    saveAllPrefs();
+  };
+}
+
 const STORAGE_KEY = 'chesster_prefs_v1';
 
 function saveAllPrefs() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       settings,
-      matchConfig
+      matchConfig,
+      playerStats
     }));
   } catch (e) {}
 }
@@ -93,8 +120,10 @@ function loadAllPrefs() {
     const saved = JSON.parse(raw);
     if (saved.settings) Object.assign(settings, saved.settings);
     if (saved.matchConfig) Object.assign(matchConfig, saved.matchConfig);
+    if (saved.playerStats) Object.assign(playerStats, saved.playerStats);
   } catch (e) {}
 
+  updateStatsUI();
   if (uiThemeSelect) uiThemeSelect.value = settings.uiTheme;
   if (difficultySelect) difficultySelect.value = settings.difficulty;
   if (cheatLevelSelect) cheatLevelSelect.value = String(settings.cheatLevel);
@@ -701,41 +730,57 @@ menuBtn.classList.remove('hidden');
 render();
 }
 function checkGameEndAndContinue(lastMoverCol) {
-const wKing = findKingPos('w', board);
-const bKing = findKingPos('b', board);
-if (!wKing || !bKing) {
-const loserCol = !wKing ? 'w' : 'b';
-const humanWon = (loserCol === 'b' && matchConfig.whiteType === 'you') || (loserCol === 'w' && matchConfig.blackType === 'you');
-const humanLost = (loserCol === 'w' && matchConfig.whiteType === 'you') || (loserCol === 'b' && matchConfig.blackType === 'you');
-playSound(humanLost && !humanWon ? 'lose' : 'win');
-for (let r = 0; r < 8; r++) {
-for (let c = 0; c < 8; c++) {
-const p = getAt(board, r, c);
-if (p && p.charAt(0) === loserCol) {
-spawnCaptureFade(r, c, p);
-setAt(board, r, c, null);
-}
-}
-}
-updateMaterialUI();
-finishGameToMenuButton(loserCol === 'b' ? 'Короля Чорних знищено! Білі перемогли!' : 'Короля Білих знищено! Чорні перемогли!');
-return;
-}
-const next = lastMoverCol === 'w' ? 'b' : 'w';
-const nextMoves = getAllLegal(next);
-const check = inCheck(next);
-updateMaterialUI();
-if (!nextMoves.length) {
-if (!check) {
-playSound('draw');
-} else {
-const humanWon = (lastMoverCol === 'w' && matchConfig.whiteType === 'you') || (lastMoverCol === 'b' && matchConfig.blackType === 'you');
-const humanLost = (lastMoverCol === 'b' && matchConfig.whiteType === 'you') || (lastMoverCol === 'w' && matchConfig.blackType === 'you');
-playSound(humanLost && !humanWon ? 'lose' : 'win');
-}
-const winMsg = lastMoverCol === 'w' ? 'Шах і мат! Білі перемогли!' : 'Шах і мат! Чорні перемогли!';
-finishGameToMenuButton(check ? winMsg : 'Пат! Нічия!');
-return;
+  const wKing = findKingPos('w', board);
+  const bKing = findKingPos('b', board);
+
+  if (!wKing || !bKing) {
+    const loserCol = !wKing ? 'w' : 'b';
+    const humanWon = (loserCol === 'b' && matchConfig.whiteType === 'you') || (loserCol === 'w' && matchConfig.blackType === 'you');
+    const humanLost = (loserCol === 'w' && matchConfig.whiteType === 'you') || (loserCol === 'b' && matchConfig.blackType === 'you');
+    playSound(humanLost && !humanWon ? 'lose' : 'win');
+
+    if (humanWon && !humanLost) { playerStats.wins++; updateStatsUI(); saveAllPrefs(); }
+    else if (humanLost && !humanWon) { playerStats.losses++; updateStatsUI(); saveAllPrefs(); }
+
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const p = getAt(board, r, c);
+        if (p && p.charAt(0) === loserCol) {
+          spawnCaptureFade(r, c, p);
+          setAt(board, r, c, null);
+        }
+      }
+    }
+    updateMaterialUI();
+    finishGameToMenuButton(loserCol === 'b' ? 'Короля Чорних знищено! Білі перемогли!' : 'Короля Білих знищено! Чорні перемогли!');
+    return;
+  }
+
+  const next = lastMoverCol === 'w' ? 'b' : 'w';
+  const nextMoves = getAllLegal(next);
+  const check = inCheck(next);
+
+  updateMaterialUI();
+
+  if (!nextMoves.length) {
+    if (!check) {
+      playSound('draw');
+      if (matchConfig.whiteType === 'you' || matchConfig.blackType === 'you') {
+        playerStats.draws++;
+        updateStatsUI();
+        saveAllPrefs();
+      }
+    } else {
+      const humanWon = (lastMoverCol === 'w' && matchConfig.whiteType === 'you') || (lastMoverCol === 'b' && matchConfig.blackType === 'you');
+      const humanLost = (lastMoverCol === 'b' && matchConfig.whiteType === 'you') || (lastMoverCol === 'w' && matchConfig.blackType === 'you');
+      playSound(humanLost && !humanWon ? 'lose' : 'win');
+      if (humanWon && !humanLost) { playerStats.wins++; updateStatsUI(); saveAllPrefs(); }
+      else if (humanLost && !humanWon) { playerStats.losses++; updateStatsUI(); saveAllPrefs(); }
+    }
+    const winMsg = lastMoverCol === 'w' ? 'Шах і мат! Білі перемогли!' : 'Шах і мат! Чорні перемогли!';
+    finishGameToMenuButton(check ? winMsg : 'Пат! Нічия!');
+    return;
+  }
 }
 turn = next;
 statusEl.textContent = getTurnLabel(next, check);
