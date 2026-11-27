@@ -131,6 +131,12 @@ h1 {
 .board.theme-birch .cell.light   { background: rgb(254, 220, 169); }
 .board.theme-birch .cell.dark    { background: #ebc683; }
 
+.board.theme-fire .cell.light   { background: rgb(241, 158, 22); }
+.board.theme-fire .cell.dark    { background: #ff4d00; }
+
+.board.theme-grass .cell.light   { background: rgb(78, 145, 77); }
+.board.theme-grass .cell.dark    { background: #1a600f; }
+
 
 .cell.selected {
   background: #facc15 !important;
