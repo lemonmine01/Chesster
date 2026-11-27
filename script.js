@@ -885,7 +885,7 @@ if (isBotTurn('w')) {
 botTimer = setTimeout(() => runBotTurn('w'), 350);
 }
 };
-menuBtn.onclick = () => {
+menuBtn.onclick = () =>
 gameStarted = false;
 clearTimeout(botTimer);
 menuBtn.classList.add('hidden');
