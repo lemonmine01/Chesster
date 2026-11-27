@@ -5,6 +5,7 @@ const materialBarEl = document.getElementById('materialBar');
 const restartBtn = document.getElementById('restartBtn');
 const boardOverlayEl = document.getElementById('boardOverlay');
 let gameStarted = false;
+const menuBtn = document.getElementById('menuBtn');
 
 const settingsBtn = document.getElementById('settingsBtn');
 const settingsModal = document.getElementById('settingsModal');
@@ -490,8 +491,7 @@ function checkGameEndAndContinue(lastMoverCol, afterAllCallback) {
     updateMaterialUI();
     gameOver = true;
     statusEl.textContent = loserCol === 'b' ? 'Короля читера знищено! Ти переміг!' : 'Твого короля знищено! Читер переміг!';
-    restartBtn.classList.remove('hidden');
-    settingsBtn.classList.remove('hidden');
+    menuBtn.classList.remove('hidden');
     render();
     return;
   }
@@ -505,8 +505,7 @@ function checkGameEndAndContinue(lastMoverCol, afterAllCallback) {
   if (!nextMoves.length) {
     gameOver = true;
     statusEl.textContent = check ? (lastMoverCol === 'w' ? 'Шах і мат! Ти переміг!' : 'Шах і мат! Читер переміг!') : 'Пат! Нічия!';
-    restartBtn.classList.remove('hidden');
-    settingsBtn.classList.remove('hidden');
+    menuBtn.classList.remove('hidden');
     render();
     return;
   }
@@ -701,6 +700,15 @@ restartBtn.onclick = () => {
   boardOverlayEl.classList.add('hidden');
   restartBtn.classList.add('hidden');
   settingsBtn.classList.add('hidden');
+  initBoard();
+};
+
+menuBtn.onclick = () => {
+  gameStarted = false;
+  menuBtn.classList.add('hidden');
+  boardOverlayEl.classList.remove('hidden');
+  restartBtn.classList.remove('hidden');
+  settingsBtn.classList.remove('hidden');
   initBoard();
 };
 
