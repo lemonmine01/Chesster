@@ -137,21 +137,18 @@
           <option value="instant">Різко зникає</option>
         </select>
       </div>
-
+      
       <div class="setting-group checkbox-group">
-        <input type="checkbox" id="showHintsCheck" checked>
-        <label for="showHintsCheck">Показувати підказки ходів</label>
+        <input type="checkbox" id="soundEnabledCheck" checked>
+        <label for="soundEnabledCheck">Звукові ефекти</label>
       </div>
 
-      <div class="setting-group checkbox-group">
-        <input type="checkbox" id="showMaterialCheck">
-        <label for="showMaterialCheck">Показувати матеріал</label>
+      <div class="setting-group">
+        <label for="soundVolumeRange">Гучність звуків: <span id="volumeValLabel">80%</span></label>
+        <input type="range" id="soundVolumeRange" min="0" max="100" value="80">
       </div>
 
-      <div class="setting-group checkbox-group">
-        <input type="checkbox" id="trashTalkCheck">
-        <label for="trashTalkCheck">Повідомлення читера під час злому</label>
-      </div>
+      <button id="applySettingsBtn" class="btn full-width">Застосувати та закрити</button>
 
       <button id="applySettingsBtn" class="btn full-width">Застосувати та закрити</button>
     </div>

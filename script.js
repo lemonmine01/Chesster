@@ -23,6 +23,31 @@ const captureAnimSelect = document.getElementById('captureAnimSelect');
 const showHintsCheck = document.getElementById('showHintsCheck');
 const showMaterialCheck = document.getElementById('showMaterialCheck');
 const trashTalkCheck = document.getElementById('trashTalkCheck');
+const soundEnabledCheck = document.getElementById('soundEnabledCheck');
+const soundVolumeRange = document.getElementById('soundVolumeRange');
+const volumeValLabel = document.getElementById('volumeValLabel');
+
+soundVolumeRange.oninput = () => {
+  volumeValLabel.textContent = soundVolumeRange.value + '%';
+};
+
+const SOUNDS = {
+  win: new Audio(encodeURI('Звук шахмового хода.mp3')),
+  move: new Audio(encodeURI('Звук передвижения фигуры в шахматах.mp3')),
+  capture: new Audio(encodeURI('Звук взятия фигуры в шахматах происходящий в игре Chess Titans.mp3')),
+  smooth: new Audio(encodeURI('Звук двигаем шашку не отрывая от игрового стола.mp3')),
+  lose: new Audio(encodeURI('8sec082968824.wav')),
+  draw: new Audio(encodeURI('quick-pencil-drawing.mp3'))
+};
+
+function playSound(name) {
+  if (!settings.soundEnabled) return;
+  const snd = SOUNDS[name];
+  if (!snd) return;
+  snd.volume = settings.soundVolume;
+  snd.currentTime = 0;
+  snd.play().catch(() => {});
+}
 
 const SYMBOLS = { wP:'♟', wR:'♜', wN:'♞', wB:'♝', wQ:'♛', wK:'♚', bP:'♟', bR:'♜', bN:'♞', bB:'♝', bQ:'♛', bK:'♚' };
 const VALUES = { P: 100, N: 320, B: 330, R: 500, Q: 900, K: 20000 };
@@ -523,6 +548,9 @@ const wKing = findKingPos('w', board);
 const bKing = findKingPos('b', board);
 if (!wKing || !bKing) {
 const loserCol = !wKing ? 'w' : 'b';
+const humanWon = (loserCol === 'b' && matchConfig.whiteType === 'you') || (loserCol === 'w' && matchConfig.blackType === 'you');
+const humanLost = (loserCol === 'w' && matchConfig.whiteType === 'you') || (loserCol === 'b' && matchConfig.blackType === 'you');
+playSound(humanLost && !humanWon ? 'lose' : 'win');
 for (let r = 0; r < 8; r++) {
 for (let c = 0; c < 8; c++) {
 const p = getAt(board, r, c);
@@ -543,6 +571,13 @@ updateMaterialUI();
 if (!nextMoves.length) {
 const winMsg = lastMoverCol === 'w' ? 'Шах і мат! Білі перемогли!' : 'Шах і мат! Чорні перемогли!';
 finishGameToMenuButton(check ? winMsg : 'Пат! Нічия!');
+if (!check) {
+  playSound('draw');
+} else {
+  const humanWon = (lastMoverCol === 'w' && matchConfig.whiteType === 'you') || (lastMoverCol === 'b' && matchConfig.blackType === 'you');
+  const humanLost = (lastMoverCol === 'b' && matchConfig.whiteType === 'you') || (lastMoverCol === 'w' && matchConfig.blackType === 'you');
+  playSound(humanLost && !humanWon ? 'lose' : 'win');
+}
 return;
 }
 turn = next;
