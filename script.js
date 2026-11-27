@@ -646,6 +646,18 @@ const p = getAt(board, fromR, fromC);
 const moverCol = p.charAt(0);
 const oppCol = moverCol === 'w' ? 'b' : 'w';
 const capturedPiece = getAt(board, toR, toC);
+
+if (isSwap) {
+  const allyPiece = getAt(board, toR, toC);
+  setAt(board, toR, toC, p);
+  setAt(board, fromR, fromC, allyPiece);
+  lastMove = { fromR, fromC, toR, toC };
+  if (cheatMsg) showCheat(cheatMsg);
+  if (settings.moveAnim !== 'smooth') playSound('move');
+  checkGameEndAndContinue(moverCol);
+  return;
+}
+
 setAt(board, toR, toC, p);
 setAt(board, fromR, fromC, null);
 lastMove = { fromR, fromC, toR, toC };
