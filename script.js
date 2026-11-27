@@ -73,6 +73,46 @@ let matchConfig = {
   whiteType: 'you',
   blackType: 'bot',
   cheaterRole: 'black'
+  const STORAGE_KEY = 'chesster_prefs_v1';
+
+function saveAllPrefs() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      settings,
+      matchConfig
+    }));
+  } catch (e) {}
+}
+
+function loadAllPrefs() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    if (saved.settings) Object.assign(settings, saved.settings);
+    if (saved.matchConfig) Object.assign(matchConfig, saved.matchConfig);
+  } catch (e) {}
+
+  if (uiThemeSelect) uiThemeSelect.value = settings.uiTheme;
+  if (difficultySelect) difficultySelect.value = settings.difficulty;
+  if (cheatLevelSelect) cheatLevelSelect.value = String(settings.cheatLevel);
+  if (themeSelect) themeSelect.value = settings.theme;
+  if (moveAnimSelect) moveAnimSelect.value = settings.moveAnim;
+  if (captureAnimSelect) captureAnimSelect.value = settings.captureAnim;
+  if (showHintsCheck) showHintsCheck.checked = settings.showHints;
+  if (showMaterialCheck) showMaterialCheck.checked = settings.showMaterial;
+  if (trashTalkCheck) trashTalkCheck.checked = settings.trashTalk;
+  if (soundEnabledCheck) soundEnabledCheck.checked = settings.soundEnabled;
+  if (soundVolumeRange) {
+    const pct = Math.round((settings.soundVolume ?? 0.8) * 100);
+    soundVolumeRange.value = String(pct);
+    if (volumeValLabel) volumeValLabel.textContent = pct + '%';
+  }
+
+  if (whitePlayerSelect) whitePlayerSelect.value = matchConfig.whiteType;
+  if (blackPlayerSelect) blackPlayerSelect.value = matchConfig.blackType;
+  if (cheaterRoleSelect) cheaterRoleSelect.value = matchConfig.cheaterRole;
+}
 };
 
 let board = [], turn = 'w', selected = null, validMoves = [], gameOver = false, lastMove = null, isAnimating = false, gameStarted = false;
@@ -115,6 +155,13 @@ applySettingsBtn.onclick = () => {
   if (trashTalkCheck) settings.trashTalk = trashTalkCheck.checked;
   if (soundEnabledCheck) settings.soundEnabled = soundEnabledCheck.checked;
   if (soundVolumeRange) settings.soundVolume = parseInt(soundVolumeRange.value, 10) / 100;
+
+    saveAllPrefs();
+  document.body.className = settings.uiTheme;
+  boardEl.className = 'board theme-' + settings.theme;
+  settingsModal.classList.add('hidden');
+  updateMaterialUI();
+  render();
 
   document.body.className = settings.uiTheme;
   boardEl.className = 'board theme-' + settings.theme;
@@ -825,6 +872,7 @@ restartBtn.onclick = () => {
 matchConfig.whiteType = whitePlayerSelect.value;
 matchConfig.blackType = blackPlayerSelect.value;
 matchConfig.cheaterRole = cheaterRoleSelect.value;
+saveAllPrefs();
 gameStarted = true;
 boardOverlayEl.classList.add('hidden');
 restartBtn.classList.add('hidden');
@@ -842,5 +890,5 @@ boardOverlayEl.classList.remove('hidden');
 restartBtn.classList.remove('hidden');
 settingsBtn.classList.remove('hidden');
 initBoard();
-};
+loadAllPrefs();
 initBoard();
