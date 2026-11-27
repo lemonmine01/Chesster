@@ -3,6 +3,8 @@ const statusEl = document.getElementById('status');
 const cheatBannerEl = document.getElementById('cheatBanner');
 const materialBarEl = document.getElementById('materialBar');
 const restartBtn = document.getElementById('restartBtn');
+const boardOverlayEl = document.getElementById('boardOverlay');
+let gameStarted = false;
 
 const settingsBtn = document.getElementById('settingsBtn');
 const settingsModal = document.getElementById('settingsModal');
@@ -659,7 +661,7 @@ function botTurn() {
 }
 
 function onCellClick(r, c) {
-  if (gameOver || turn !== 'w' || isAnimating) return;
+if (!gameStarted || gameOver || turn !== 'w' || isAnimating) return;
   const mv = validMoves.find(m => m.r === r && m.c === c);
   if (selected && mv) {
     const sR = selected.r, sC = selected.c;
@@ -695,6 +697,8 @@ function render() {
 }
 
 restartBtn.onclick = () => {
+  gameStarted = true;
+  boardOverlayEl.classList.add('hidden');
   restartBtn.classList.add('hidden');
   settingsBtn.classList.add('hidden');
   initBoard();

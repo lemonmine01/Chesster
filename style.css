@@ -339,3 +339,18 @@ h1 {
   height: 17px;
   accent-color: #38bdf8;
 }
+
+.board-stage {
+  position: relative;
+  display: inline-block;
+}
+
+.board-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 6px;
+  z-index: 40;
+  pointer-events: auto;
+  transition: opacity 0.25s ease;
+}
