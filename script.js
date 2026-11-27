@@ -433,15 +433,33 @@ function animatePieceMove(fromR, fromC, toR, toC, piece, onComplete) {
       isAnimating = false;
       onComplete();
     }, 260);
-  } else if (settings.moveAnim === 'step') {
+   } else if (settings.moveAnim === 'step') {
     const steps = [];
     let cr = fromR, cc = fromC;
-    while (cr !== toR || cc !== toC) {
-      if (cr < toR) cr++;
-      else if (cr > toR) cr--;
-      if (cc < toC) cc++;
-      else if (cc > toC) cc--;
-      steps.push({ r: cr, c: cc });
+    const dr = toR - fromR, dc = toC - fromC;
+
+    // Якщо це модифікований стрибок коня або Валькірії (літерою "Г") — йдемо по клітинках буквою Г
+    if ((Math.abs(dr) === 2 && Math.abs(dc) === 1) || (Math.abs(dr) === 1 && Math.abs(dc) === 2)) {
+      if (Math.abs(dr) === 2) {
+        const stepR = dr > 0 ? 1 : -1;
+        steps.push({ r: cr + stepR, c: cc });
+        steps.push({ r: cr + 2 * stepR, c: cc });
+        steps.push({ r: toR, c: toC });
+      } else {
+        const stepC = dc > 0 ? 1 : -1;
+        steps.push({ r: cr, c: cc + stepC });
+        steps.push({ r: cr, c: cc + 2 * stepC });
+        steps.push({ r: toR, c: toC });
+      }
+    } else {
+      // Для всіх інших звичайних і модифікованих ходів (по прямій, діагоналі або на 2 клітинки)
+      while (cr !== toR || cc !== toC) {
+        if (cr < toR) cr++;
+        else if (cr > toR) cr--;
+        if (cc < toC) cc++;
+        else if (cc > toC) cc--;
+        steps.push({ r: cr, c: cc });
+      }
     }
 
     const ghost = document.createElement('div');
@@ -469,9 +487,8 @@ function animatePieceMove(fromR, fromC, toR, toC, piece, onComplete) {
       ghost.style.left = (st.c * 60) + 'px';
       ghost.style.top = (st.r * 60) + 'px';
       idx++;
-    }, 95);
+    }, 105);
   }
-}
 
 function checkGameEndAndContinue(lastMoverCol, afterAllCallback) {
   const wKing = findKingPos('w', board);
